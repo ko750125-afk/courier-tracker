@@ -153,14 +153,15 @@ export default function FunctionalGuide() {
         return () => clearTimeout(timer);
     }, [active, step]);
 
-    // 3. 만약 구멍(타겟 엘리먼트)을 직접 클릭하여 라우팅이 변경된 경우 자동 진행
+    // 3. 만약 라우팅이 변경된 경우 현재 페이지에 맞는 첫 번째 스텝으로 자동 동기화
     useEffect(() => {
         if (!active) return;
         const current = GUIDE_STEPS[step];
-        if (step < GUIDE_STEPS.length - 1) {
-            const nextConfig = GUIDE_STEPS[step + 1];
-            if (pathname === nextConfig.path && pathname !== current.path) {
-                setStep(step + 1);
+
+        if (current.path && pathname !== current.path) {
+            const firstStepForPath = GUIDE_STEPS.findIndex(s => s.path === pathname);
+            if (firstStepForPath !== -1) {
+                setStep(firstStepForPath);
             }
         }
     }, [pathname, step, active]);
@@ -170,12 +171,12 @@ export default function FunctionalGuide() {
             const nextStep = step + 1;
             const nextConfig = GUIDE_STEPS[nextStep];
 
-            // If next step is on a different page, navigate
             if (nextConfig.path && nextConfig.path !== pathname) {
+                // 페이지 이동만 시킴. 스텝 동기화(setStep)는 useEffect가 담당함.
                 router.push(nextConfig.path);
+            } else {
+                setStep(nextStep);
             }
-
-            setStep(nextStep);
         } else {
             localStorage.setItem("functional_guide_v1", "true");
             setActive(false);
