@@ -1,0 +1,23 @@
+{
+    "name": "택배 정산",
+    "short_name": "택배정산",
+    "description": "택배기사 배송 실적 기록 및 매출 자동 계산 앱",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#020617",
+    "theme_color": "#0f172a",
+    "icons": [
+        {
+            "src": "/icon-v3.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "any maskable"
+        },
+        {
+            "src": "/icon-v3.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "any maskable"
+        }
+    ]
+}
