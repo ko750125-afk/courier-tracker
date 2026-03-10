@@ -43,7 +43,7 @@ export default function DeliveryInput({
     };
 
     return (
-        <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5">
+        <div id="guide-input-section" className="bg-gray-900 border border-gray-800 rounded-2xl p-5">
             <div className="flex items-center justify-between mb-3">
                 <h2 className="text-base font-semibold text-gray-300">오늘 배송</h2>
                 <span className="text-xs text-gray-500">수량을 입력하세요</span>
