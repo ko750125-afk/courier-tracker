@@ -93,11 +93,16 @@ export default function FunctionalGuide() {
         const el = document.getElementById(current.id);
         if (el) {
             const rect = el.getBoundingClientRect();
-            setBox({
-                top: rect.top,
-                left: rect.left,
-                width: rect.width,
-                height: rect.height
+            setBox(prev => {
+                if (prev && prev.top === rect.top && prev.left === rect.left && prev.width === rect.width && prev.height === rect.height) {
+                    return prev;
+                }
+                return {
+                    top: rect.top,
+                    left: rect.left,
+                    width: rect.width,
+                    height: rect.height
+                };
             });
         } else {
             setBox(null);
@@ -120,34 +125,45 @@ export default function FunctionalGuide() {
         }
     }, [updateBox]);
 
+    // 1. 박스 추적 및 업데이트
     useEffect(() => {
         if (active) {
             updateBox();
-
-            // Periodically check if element appears (in case of lazy loading)
-            const interval = setInterval(() => {
-                if (!box) updateBox();
-            }, 100);
-
+            const interval = setInterval(updateBox, 100);
             window.addEventListener("resize", updateBox);
             window.addEventListener("scroll", updateBox);
-
-            // 해당 스텝의 타겟 요소로 부드럽게 스크롤
-            setTimeout(() => {
-                const current = GUIDE_STEPS[step];
-                const el = document.getElementById(current.id);
-                if (el) {
-                    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                }
-            }, 300);
-
             return () => {
                 clearInterval(interval);
                 window.removeEventListener("resize", updateBox);
                 window.removeEventListener("scroll", updateBox);
             };
         }
-    }, [active, updateBox, box, step]);
+    }, [active, updateBox]);
+
+    // 2. 요소 위치로 스크롤 (스텝 이동 시에만)
+    useEffect(() => {
+        if (!active) return;
+        const timer = setTimeout(() => {
+            const current = GUIDE_STEPS[step];
+            const el = document.getElementById(current.id);
+            if (el) {
+                el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        }, 300);
+        return () => clearTimeout(timer);
+    }, [active, step]);
+
+    // 3. 만약 구멍(타겟 엘리먼트)을 직접 클릭하여 라우팅이 변경된 경우 자동 진행
+    useEffect(() => {
+        if (!active) return;
+        const current = GUIDE_STEPS[step];
+        if (step < GUIDE_STEPS.length - 1) {
+            const nextConfig = GUIDE_STEPS[step + 1];
+            if (pathname === nextConfig.path && pathname !== current.path) {
+                setStep(step + 1);
+            }
+        }
+    }, [pathname, step, active]);
 
     const next = () => {
         if (step < GUIDE_STEPS.length - 1) {
