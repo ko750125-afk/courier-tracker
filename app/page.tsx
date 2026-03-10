@@ -139,8 +139,8 @@ export default function HomePage() {
 
       {/* Saved Toast */}
       {saved && (
-        <div className="mt-3 bg-blue-500/10 border border-blue-500/20 rounded-xl py-2 px-4 text-center text-blue-400 text-sm font-medium">
-          ✓ 저장 완료
+        <div className="mt-4 bg-gradient-to-r from-blue-500/10 to-indigo-500/10 border border-blue-500/20 rounded-xl py-2.5 px-4 text-center text-blue-400 text-sm font-semibold shadow-lg shadow-blue-500/5 backdrop-blur-sm animate-in fade-in slide-in-from-bottom-2 duration-300">
+          ✓ 기록이 저장되었습니다
         </div>
       )}
 
@@ -155,8 +155,8 @@ export default function HomePage() {
 
       {/* Recent Deliveries with CRUD */}
       <div className="mt-6">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-base font-bold text-gray-200">최근 기록</h3>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-base font-bold text-gray-200 tracking-tight">최근 기록</h3>
           <button
             onClick={() => {
               setShowAddModal(true);
@@ -164,7 +164,8 @@ export default function HomePage() {
               setAddValue("");
             }}
             className="text-xs text-blue-400 hover:text-blue-300 font-medium
-                       bg-blue-500/10 px-3 py-1.5 rounded-lg transition-colors"
+                       bg-blue-500/10 hover:bg-blue-500/20 border border-transparent hover:border-blue-500/30
+                       px-3.5 py-1.5 rounded-lg active:scale-95 transition-all duration-200"
           >
             + 기록 추가
           </button>
@@ -172,16 +173,16 @@ export default function HomePage() {
 
         {/* Add Modal */}
         {showAddModal && (
-          <div className="bg-gray-900 border border-gray-700 rounded-xl p-4 mb-3">
-            <p className="text-sm text-gray-400 mb-3">과거 기록 추가</p>
-            <div className="flex gap-2 mb-3">
+          <div className="bg-gray-900/80 backdrop-blur-md border border-gray-700/80 rounded-2xl p-4 mb-4 shadow-xl shadow-black/20 animate-in fade-in zoom-in-95 duration-200">
+            <p className="text-sm font-semibold text-gray-300 mb-3">과거 기록 추가</p>
+            <div className="flex gap-2 mb-4">
               <input
                 type="date"
                 value={addDate}
                 onChange={(e) => setAddDate(e.target.value)}
                 max={todayStr}
-                className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2
-                           text-white text-sm focus:outline-none focus:border-blue-500/50"
+                className="flex-[2] bg-gray-950/50 border border-gray-700/80 rounded-xl px-3 py-2.5
+                           text-white text-sm focus:outline-none focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/20 transition-all font-medium"
               />
               <input
                 type="text"
@@ -191,24 +192,25 @@ export default function HomePage() {
                   setAddValue(e.target.value.replace(/[^0-9]/g, ""))
                 }
                 placeholder="수량"
-                className="w-24 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2
-                           text-white text-sm text-center focus:outline-none focus:border-blue-500/50"
+                className="flex-1 min-w-0 bg-gray-950/50 border border-gray-700/80 rounded-xl px-3 py-2.5
+                           text-white text-sm text-center font-bold focus:outline-none focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/20 transition-all"
               />
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2.5">
               <button
                 onClick={() => setShowAddModal(false)}
-                className="flex-1 py-2 bg-gray-800 text-gray-400 text-sm rounded-lg"
+                className="flex-1 py-2.5 bg-gray-800/80 hover:bg-gray-700 text-gray-300 font-medium text-sm rounded-xl active:scale-95 transition-all"
               >
                 취소
               </button>
               <button
                 onClick={handleAdd}
                 disabled={!addDate || !addValue}
-                className="flex-1 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg
-                           disabled:opacity-40"
+                className="flex-1 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-sm font-bold rounded-xl
+                           active:scale-95 transition-all shadow-lg shadow-blue-500/20
+                           disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none"
               >
-                추가
+                기록 생성
               </button>
             </div>
           </div>
@@ -280,8 +282,8 @@ export default function HomePage() {
                 </div>
               ) : (
                 /* View mode */
-                <div className="flex items-center justify-between bg-gray-900/60 border border-gray-800/50 rounded-xl px-4 py-2.5 group">
-                  <span className="text-gray-400 text-sm">
+                <div className="flex items-center justify-between bg-gray-900/40 hover:bg-gray-800/80 border border-gray-800/50 rounded-xl px-4 py-3 group cursor-pointer transition-colors duration-200">
+                  <span className="text-gray-400 text-sm font-medium">
                     {(() => {
                       const safeDate = (d.date || "").replace(/-/g, "/");
                       return new Date(safeDate + " 00:00:00").toLocaleDateString(
@@ -321,9 +323,15 @@ export default function HomePage() {
             </div>
           ))}
           {deliveries.length === 0 && (
-            <p className="text-gray-600 text-center py-6 text-sm">
-              아직 기록이 없습니다
-            </p>
+            <div className="text-center py-12 bg-gray-900/20 rounded-2xl border border-gray-800/30 border-dashed">
+              <svg className="w-10 h-10 text-gray-700 mx-auto mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+              </svg>
+              <p className="text-gray-500 text-sm font-medium">
+                아직 등록된 배송 기록이 없습니다
+              </p>
+              <p className="text-gray-600 text-xs mt-1">오늘의 배송량 버튼 혹은 상단의 '+ 기록 추가' 버튼을 눌러 시작해 보세요</p>
+            </div>
           )}
         </div>
       </div>

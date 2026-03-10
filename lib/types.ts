@@ -27,6 +27,8 @@ export interface Settings {
     customWorkDays?: number; // only used when workType is "custom"
     payDay: number; // 월급일 (default: 20)
     sharedId?: string; // 공유 ID (for 2인1조 or multiple devices)
+    restDaysOfWeek: number[]; // 기본으로 쉬는 요일 (0: 일요일, 1: 월요일, ..., 6: 토요일)
+    restDateOverrides: Record<string, boolean>; // 특정 날짜 지정 휴무 여부. 키: "YYYY-MM-DD", 값: true(휴일), false(근무일(강제))
 }
 
 export const WORK_TYPE_LABELS: Record<WorkType, string> = {
@@ -45,6 +47,8 @@ export const DEFAULT_SETTINGS: Settings = {
     zones: DEFAULT_ZONES,
     workType: "5day",
     payDay: 20,
+    restDaysOfWeek: [0], // 기본적으로 일요일(0)을 쉬는 날로 설정
+    restDateOverrides: {},
 };
 
 export const TEST_DELIVERIES: Delivery[] = [

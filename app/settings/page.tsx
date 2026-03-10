@@ -69,6 +69,19 @@ export default function SettingsPage() {
         setSettings((prev) => ({ ...prev, workType }));
     };
 
+    const handleRestDayToggle = (dayIndex: number) => {
+        setSettings((prev) => {
+            const current = prev.restDaysOfWeek || [];
+            let updated: number[];
+            if (current.includes(dayIndex)) {
+                updated = current.filter((d: number) => d !== dayIndex);
+            } else {
+                updated = [...current, dayIndex].sort((a, b) => a - b);
+            }
+            return { ...prev, restDaysOfWeek: updated };
+        });
+    };
+
     if (!isMounted || loading) {
         return (
             <div className="flex items-center justify-center min-h-[60vh]">
@@ -134,6 +147,31 @@ export default function SettingsPage() {
                         />
                     </div>
                 )}
+
+                {/* Rest Days Of Week */}
+                <div className="mt-8 pt-8 border-t border-gray-800">
+                    <h3 className="text-base font-bold text-gray-200 mb-2">정기 쉬는 요일</h3>
+                    <p className="text-xs text-gray-500 mb-4 bg-gray-900/50 p-3 rounded-xl border border-gray-800 leading-relaxed">
+                        선택된 요일은 통계 달력에 자동 휴무 표시됩니다. 다중 선택이 가능합니다.
+                    </p>
+                    <div className="flex gap-2 justify-between">
+                        {["일", "월", "화", "수", "목", "금", "토"].map((label, idx) => {
+                            const isSelected = (settings.restDaysOfWeek || []).includes(idx);
+                            return (
+                                <button
+                                    key={label}
+                                    onClick={() => handleRestDayToggle(idx)}
+                                    className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold transition-all duration-200 active:scale-90 ${isSelected
+                                            ? "bg-red-500/20 text-red-400 border border-red-500/30 shadow-inner"
+                                            : "bg-gray-900 text-gray-500 border border-gray-800 hover:bg-gray-800"
+                                        }`}
+                                >
+                                    {label}
+                                </button>
+                            );
+                        })}
+                    </div>
+                </div>
             </div>
 
             {/* Shared ID */}
