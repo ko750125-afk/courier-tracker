@@ -56,7 +56,7 @@ const GUIDE_STEPS = [
         id: "guide-settings-zones",
         title: "구역 및 단가 설정",
         text: "배송 구역별로 다른 단가와 배정 비율(%)을 입력하세요. 비율 합계는 꼭 100%가 되어야 합니다.",
-        position: "top",
+        position: "bottom",
         path: "/settings"
     },
     {

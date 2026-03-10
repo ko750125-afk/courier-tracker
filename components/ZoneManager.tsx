@@ -51,7 +51,7 @@ export default function ZoneManager({ zones, onChange }: ZoneManagerProps) {
 
     return (
         <div>
-            <div className="flex items-center justify-between mb-3">
+            <div id="guide-settings-zones" className="flex items-center justify-between mb-3">
                 <h3 className="text-base font-bold text-gray-200">배송 구역</h3>
                 <span
                     className={`text-xs font-medium px-2.5 py-1 rounded-full ${isValid
