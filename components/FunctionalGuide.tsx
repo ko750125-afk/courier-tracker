@@ -110,18 +110,13 @@ export default function FunctionalGuide() {
     }, [step, pathname]);
 
     useEffect(() => {
-        let timer: NodeJS.Timeout;
-
         const checkAndStart = () => {
             const hasSeen = localStorage.getItem("functional_guide_v1");
             const onboardingDone = localStorage.getItem("onboarding_v1");
 
             if (onboardingDone && !hasSeen && !active) {
-                // Give a small delay for page to settle
-                timer = setTimeout(() => {
-                    setActive(true);
-                    updateBox();
-                }, 500);
+                setActive(true);
+                updateBox();
             }
         };
 
@@ -133,7 +128,6 @@ export default function FunctionalGuide() {
 
         return () => {
             window.removeEventListener("start_functional_guide", checkAndStart);
-            if (timer) clearTimeout(timer);
         };
     }, [updateBox, active]);
 

@@ -129,7 +129,7 @@ export default function HomePage() {
       </div>
 
       {/* Delivery Input */}
-      <div id="guide-input-section">
+      <div>
         <DeliveryInput
           initialValue={todayDelivery?.total}
           onSave={handleSave}
@@ -145,7 +145,7 @@ export default function HomePage() {
       )}
 
       {/* Dashboard */}
-      <div id="guide-dashboard-section">
+      <div>
         <Dashboard
           deliveries={deliveries}
           settings={settings}
