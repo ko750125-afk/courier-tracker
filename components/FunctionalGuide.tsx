@@ -110,20 +110,32 @@ export default function FunctionalGuide() {
     }, [step, pathname]);
 
     useEffect(() => {
-        const hasSeen = localStorage.getItem("functional_guide_v1");
-        // Start after the main onboarding is done (or if user clicks help)
-        // We trigger it if onboarding_v1 is set but functional_guide_v1 is not
-        const onboardingDone = localStorage.getItem("onboarding_v1");
+        let timer: NodeJS.Timeout;
 
-        if (onboardingDone && !hasSeen) {
-            // Give a small delay for page to settle
-            const timer = setTimeout(() => {
-                setActive(true);
-                updateBox();
-            }, 500);
-            return () => clearTimeout(timer);
-        }
-    }, [updateBox]);
+        const checkAndStart = () => {
+            const hasSeen = localStorage.getItem("functional_guide_v1");
+            const onboardingDone = localStorage.getItem("onboarding_v1");
+
+            if (onboardingDone && !hasSeen && !active) {
+                // Give a small delay for page to settle
+                timer = setTimeout(() => {
+                    setActive(true);
+                    updateBox();
+                }, 500);
+            }
+        };
+
+        // Check initially on mount or deps change
+        checkAndStart();
+
+        // Listen for event from OnboardingGuide completion
+        window.addEventListener("start_functional_guide", checkAndStart);
+
+        return () => {
+            window.removeEventListener("start_functional_guide", checkAndStart);
+            if (timer) clearTimeout(timer);
+        };
+    }, [updateBox, active]);
 
     // 1. 박스 추적 및 업데이트
     useEffect(() => {

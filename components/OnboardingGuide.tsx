@@ -34,6 +34,7 @@ export default function OnboardingGuide() {
     const handleClose = () => {
         localStorage.setItem("onboarding_v1", "true");
         setShow(false);
+        window.dispatchEvent(new Event("start_functional_guide"));
     };
 
     const next = () => {
