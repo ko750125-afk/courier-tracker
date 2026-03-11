@@ -175,6 +175,50 @@ export default function SettingsPage() {
                 </p>
             </div>
 
+            {/* Coupang Incentive Settings */}
+            <div className="mt-8 pt-8 border-t border-gray-800">
+                <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-base font-bold text-gray-200">쿠팡 신선백 인센티브</h3>
+                    <button
+                        onClick={() => setSettings(prev => ({ ...prev, isCoupangMode: !prev.isCoupangMode }))}
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
+                            settings.isCoupangMode ? 'bg-blue-600' : 'bg-gray-700'
+                        }`}
+                    >
+                        <span
+                            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                                settings.isCoupangMode ? 'translate-x-6' : 'translate-x-1'
+                            }`}
+                        />
+                    </button>
+                </div>
+                
+                {settings.isCoupangMode && (
+                    <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                        <div>
+                            <label className="text-xs text-gray-500 block mb-1.5">연계 인센티브 (원)</label>
+                            <input
+                                type="number"
+                                value={settings.linkedIncentive ?? 0}
+                                onChange={(e) => setSettings(prev => ({ ...prev, linkedIncentive: parseInt(e.target.value) || 0 }))}
+                                className="w-full bg-gray-900 border border-gray-800 rounded-xl px-4 py-2.5 text-white text-base focus:outline-none focus:border-blue-500/50"
+                                placeholder="예: 15"
+                            />
+                        </div>
+                        <div>
+                            <label className="text-xs text-gray-500 block mb-1.5">단독 인센티브 (원)</label>
+                            <input
+                                type="number"
+                                value={settings.soloIncentive ?? 0}
+                                onChange={(e) => setSettings(prev => ({ ...prev, soloIncentive: parseInt(e.target.value) || 0 }))}
+                                className="w-full bg-gray-900 border border-gray-800 rounded-xl px-4 py-2.5 text-white text-base focus:outline-none focus:border-blue-500/50"
+                                placeholder="예: 10"
+                            />
+                        </div>
+                    </div>
+                )}
+            </div>
+
             {/* Rest Days Of Week */}
             <div className="mt-8 pt-8 border-t border-gray-800">
                     <h3 className="text-base font-bold text-gray-200 mb-2">정기 쉬는 요일</h3>

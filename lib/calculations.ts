@@ -1,14 +1,22 @@
-import { Zone, Delivery, WorkType } from "./types";
+import { Zone, Delivery, WorkType, Settings } from "./types";
 
 /**
  * Calculate revenue for a single day's deliveries
  */
-export function calcDailyRevenue(total: number, zones: Zone[]): number {
+export function calcDailyRevenue(total: number, zones: Zone[], settings?: Settings): number {
     if (!zones || !Array.isArray(zones)) return 0;
+
+    let bonus = 0;
+    if (settings?.isCoupangMode) {
+        if (settings.useLinkedIncentive) bonus += settings.linkedIncentive || 0;
+        if (settings.useSoloIncentive) bonus += settings.soloIncentive || 0;
+    }
+
     return zones.reduce((sum, zone) => {
         if (!zone) return sum;
         const count = Math.round((total || 0) * (zone.ratio || 0));
-        return sum + count * (zone.price || 0);
+        const finalPrice = (zone.price || 0) + bonus;
+        return sum + count * finalPrice;
     }, 0);
 }
 
@@ -33,13 +41,14 @@ export function calcMonthlyStats(
     deliveries: Delivery[],
     zones: Zone[],
     year: number,
-    month: number
+    month: number,
+    settings?: Settings
 ): { totalDeliveries: number; totalRevenue: number } {
     const monthStr = `${year}-${String(month).padStart(2, "0")}`;
     const monthDeliveries = (deliveries || []).filter((d) => d && d.date && d.date.startsWith(monthStr));
     const totalDeliveries = monthDeliveries.reduce((s, d) => s + (d.total || 0), 0);
     const totalRevenue = monthDeliveries.reduce(
-        (s, d) => s + calcDailyRevenue(d.total, zones),
+        (s, d) => s + calcDailyRevenue(d.total, zones, settings),
         0
     );
     return { totalDeliveries, totalRevenue };
@@ -91,7 +100,7 @@ export function calcEstimatedEarnings(
     workType: WorkType,
     year: number,
     month: number,
-    customWorkDays?: number
+    settings: Settings
 ): { estimatedDeliveries: number; estimatedRevenue: number; dailyAvg: number } {
     const monthStr = `${year}-${String(month).padStart(2, "0")}`;
     const monthDeliveries = (deliveries || []).filter((d) => d && d.date && d.date.startsWith(monthStr));
@@ -107,12 +116,12 @@ export function calcEstimatedEarnings(
         workType,
         year,
         month,
-        customWorkDays
+        settings.customWorkDays
     );
     const estimatedRemaining = dailyAvg * remaining;
     const estimatedDeliveries = totalSoFar + estimatedRemaining;
 
-    const monthlyStats = calcMonthlyStats(deliveries || [], zones || [], year, month);
+    const monthlyStats = calcMonthlyStats(deliveries || [], zones || [], year, month, settings);
     const avgRevenuePerDelivery = totalSoFar > 0 ? monthlyStats.totalRevenue / totalSoFar : 0;
     const betterEstimatedRevenue = Math.round(
         avgRevenuePerDelivery * estimatedDeliveries
@@ -132,9 +141,10 @@ export function calcNextPayment(
     deliveries: Delivery[],
     zones: Zone[],
     today: Date,
-    settlementDay: number = 25,
-    payDay: number = 20
+    settings: Settings
 ): { amount: number; paymentDate: string; paymentLabel: string; periodStart: string; periodEnd: string } {
+    const settlementDay = settings.settlementDay || 25;
+    const payDay = settings.payDay || 20;
     const year = today.getFullYear();
     const month = today.getMonth() + 1; // 1-indexed
     const date = today.getDate();
@@ -182,7 +192,7 @@ export function calcNextPayment(
     );
 
     const amount = periodDeliveries.reduce(
-        (s, d) => s + calcDailyRevenue(d.total, zones),
+        (s, d) => s + calcDailyRevenue(d.total, zones, settings),
         0
     );
 

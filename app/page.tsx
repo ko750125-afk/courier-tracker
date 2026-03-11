@@ -7,6 +7,7 @@ import {
   loadSettings,
   loadDeliveries,
   saveDelivery,
+  saveSettings,
 } from "@/lib/store";
 import { formatNumber } from "@/lib/calculations";
 
@@ -109,6 +110,10 @@ export default function HomePage() {
           deliveries={deliveries}
           settings={settings}
           todayTotal={todayDelivery?.total ?? null}
+          onUpdateSettings={async (newSettings) => {
+            await saveSettings(newSettings);
+            setSettings(newSettings);
+          }}
         />
       </div>
     </div>

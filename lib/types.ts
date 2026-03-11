@@ -34,6 +34,12 @@ export interface Settings {
     restDateOverrides: Record<string, boolean>; // 특정 날짜 지정 휴무 여부. 키: "YYYY-MM-DD", 값: true(휴일), false(근무일(강제))
     tipZones: string[]; // 배송팁 상세 구역 관리
     workShift: WorkShift; // 근무 시간 (주간/야간)
+    // 쿠팡 인센티브 관련
+    isCoupangMode?: boolean;
+    linkedIncentive?: number;
+    soloIncentive?: number;
+    useLinkedIncentive?: boolean;
+    useSoloIncentive?: boolean;
 }
 
 export const WORK_TYPE_LABELS: Record<WorkType, string> = {
@@ -57,6 +63,11 @@ export const DEFAULT_SETTINGS: Settings = {
     restDateOverrides: {},
     tipZones: [],
     workShift: "day",
+    isCoupangMode: false,
+    linkedIncentive: 0,
+    soloIncentive: 0,
+    useLinkedIncentive: false,
+    useSoloIncentive: false,
 };
 
 export const TEST_DELIVERIES: Delivery[] = [

@@ -102,7 +102,8 @@ export default function StatsPage() {
         deliveries,
         settings.zones,
         year,
-        month
+        month,
+        settings
     );
 
     const monthDeliveries = (deliveries || []).filter((d) =>

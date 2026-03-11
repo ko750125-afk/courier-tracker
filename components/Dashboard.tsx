@@ -12,19 +12,21 @@ interface DashboardProps {
     deliveries: Delivery[];
     settings: Settings;
     todayTotal: number | null;
+    onUpdateSettings?: (newSettings: Settings) => void;
 }
 
 export default function Dashboard({
     deliveries,
     settings,
     todayTotal,
+    onUpdateSettings,
 }: DashboardProps) {
     const now = new Date();
     const year = now.getFullYear();
     const month = now.getMonth() + 1;
 
     const todayRevenue =
-        todayTotal !== null ? calcDailyRevenue(todayTotal, settings.zones) : 0;
+        todayTotal !== null ? calcDailyRevenue(todayTotal, settings.zones, settings) : 0;
 
     const { estimatedRevenue, dailyAvg } = calcEstimatedEarnings(
         deliveries,
@@ -32,16 +34,26 @@ export default function Dashboard({
         settings.workType,
         year,
         month,
-        settings.customWorkDays
+        settings
     );
 
     const nextPayment = calcNextPayment(
         deliveries,
         settings.zones,
         now,
-        settings.settlementDay || 25,
-        settings.payDay || 20
+        settings
     );
+
+    const toggleIncentive = (type: 'linked' | 'solo') => {
+        if (!onUpdateSettings) return;
+        const newSettings = { ...settings };
+        if (type === 'linked') {
+            newSettings.useLinkedIncentive = !settings.useLinkedIncentive;
+        } else {
+            newSettings.useSoloIncentive = !settings.useSoloIncentive;
+        }
+        onUpdateSettings(newSettings);
+    };
 
     return (
         <div className="mt-5 space-y-4">
@@ -79,6 +91,32 @@ export default function Dashboard({
                     </p>
                 </div>
             </div>
+
+            {/* Coupang Incentives */}
+            {settings.isCoupangMode && (
+                <div className="mx-1 flex gap-2">
+                    <button
+                        onClick={() => toggleIncentive('linked')}
+                        className={`flex-1 py-1.5 rounded-lg text-xs font-bold border transition-all ${
+                            settings.useLinkedIncentive
+                                ? "bg-blue-500/20 border-blue-500/50 text-blue-400 shadow-lg shadow-blue-500/10"
+                                : "bg-gray-900/40 border-gray-800/40 text-gray-500"
+                        }`}
+                    >
+                        연계 {settings.linkedIncentive && settings.linkedIncentive > 0 ? `(+${settings.linkedIncentive}원)` : ""}
+                    </button>
+                    <button
+                        onClick={() => toggleIncentive('solo')}
+                        className={`flex-1 py-1.5 rounded-lg text-xs font-bold border transition-all ${
+                            settings.useSoloIncentive
+                                ? "bg-indigo-500/20 border-indigo-500/50 text-indigo-400 shadow-lg shadow-indigo-500/10"
+                                : "bg-gray-900/40 border-gray-800/40 text-gray-500"
+                        }`}
+                    >
+                        단독 {settings.soloIncentive && settings.soloIncentive > 0 ? `(+${settings.soloIncentive}원)` : ""}
+                    </button>
+                </div>
+            )}
 
             {/* Subtle: Scheduled Payment (Settlement Period based) */}
             <div className="mx-1 px-4 py-2.5 bg-gray-900/40 border border-gray-800/40 rounded-xl flex items-center justify-between">
