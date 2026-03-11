@@ -1,0 +1,30 @@
+﻿   ??Next.js 14.1.0
+   - Environments: .env.local
+
+   Creating an optimized production build ...
+node.exe : Failed to compile.
+위치 줄:1 문자:1
++ & "C:\Program Files\nodejs/
+node.exe" "C:\Program Files\n
+odejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~
+    + CategoryInfo           
+   : NotSpecified: (Failed   
+  to compile.:String) [],    
+ RemoteException
+    + FullyQualifiedErrorId  
+   : NativeCommandError
+ 
+
+Error: EISDIR: illegal operat
+ion on a directory, readlink 
+'D:\1000_Antigravity Projects
+\100_Websites\courier-tracker
+\node_modules\next\dist\pages
+\_app.js'
+
+
+> Build failed because of web
+pack errors

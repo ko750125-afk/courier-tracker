@@ -5,6 +5,7 @@ import {
     Settings,
     Zone,
     WorkType,
+    WorkShift,
     WORK_TYPE_LABELS,
     DEFAULT_SETTINGS,
 } from "@/lib/types";
@@ -147,9 +148,35 @@ export default function SettingsPage() {
                         />
                     </div>
                 )}
+            </div>
 
-                {/* Rest Days Of Week */}
-                <div className="mt-8 pt-8 border-t border-gray-800">
+            {/* Work Shift */}
+            <div className="mt-8 pt-8 border-t border-gray-800">
+                <h3 className="text-base font-bold text-gray-200 mb-3">근무 시간 (주간/야간)</h3>
+                <div className="grid grid-cols-2 gap-2">
+                    {(["day", "night"] as WorkShift[]).map((shift) => (
+                        <button
+                            key={shift}
+                            onClick={() => setSettings(prev => ({ ...prev, workShift: shift }))}
+                            className={`py-2.5 px-4 rounded-xl text-center text-sm font-medium transition-all ${settings.workShift === shift
+                                ? "bg-blue-600 text-white shadow-lg shadow-blue-600/20"
+                                : "bg-gray-900 text-gray-400 border border-gray-800 hover:border-gray-700"
+                                }`}
+                        >
+                            <div className="flex flex-col items-center gap-1">
+                                <span className="font-bold">{shift === "day" ? "주간 배송" : "야간 배송"}</span>
+                                <span className="text-[10px] opacity-70">{shift === "day" ? "당일 기록" : "전날 기록"}</span>
+                            </div>
+                        </button>
+                    ))}
+                </div>
+                <p className="mt-3 text-[10px] text-gray-500 leading-relaxed italic">
+                    * 야간 배송(밤 10시~다음날 오전)의 경우, 새벽에 입력한 실적이 배송을 시작한 전날 날짜로 자동 기록됩니다.
+                </p>
+            </div>
+
+            {/* Rest Days Of Week */}
+            <div className="mt-8 pt-8 border-t border-gray-800">
                     <h3 className="text-base font-bold text-gray-200 mb-2">정기 쉬는 요일</h3>
                     <p className="text-xs text-gray-500 mb-4 bg-gray-900/50 p-3 rounded-xl border border-gray-800 leading-relaxed">
                         선택된 요일은 통계 달력에 자동 휴무 표시됩니다. 다중 선택이 가능합니다.
@@ -162,14 +189,120 @@ export default function SettingsPage() {
                                     key={label}
                                     onClick={() => handleRestDayToggle(idx)}
                                     className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold transition-all duration-200 active:scale-90 ${isSelected
-                                            ? "bg-red-500/20 text-red-400 border border-red-500/30 shadow-inner"
-                                            : "bg-gray-900 text-gray-500 border border-gray-800 hover:bg-gray-800"
+                                        ? "bg-red-500/20 text-red-400 border border-red-500/30 shadow-inner"
+                                        : "bg-gray-900 text-gray-500 border border-gray-800 hover:bg-gray-800"
                                         }`}
                                 >
                                     {label}
                                 </button>
                             );
                         })}
+                    </div>
+                </div>
+
+                {/* Settlement Settings */}
+                <div className="mt-8 pt-8 border-t border-gray-800">
+                    <h3 className="text-base font-bold text-gray-200 mb-3">정산 및 급여 주기</h3>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label className="text-xs text-gray-500 block mb-1.5">정산 시작일</label>
+                            <div className="relative">
+                                <input
+                                    type="number"
+                                    min="1"
+                                    max="31"
+                                    value={settings.settlementDay}
+                                    onChange={(e) => setSettings(prev => ({ ...prev, settlementDay: parseInt(e.target.value) || 25 }))}
+                                    className="w-full bg-gray-900 border border-gray-800 rounded-xl px-4 py-2.5 text-white text-base focus:outline-none focus:border-blue-500/50"
+                                />
+                                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 text-sm">일</span>
+                            </div>
+                        </div>
+                        <div>
+                            <label className="text-xs text-gray-500 block mb-1.5">정산일 (월급날)</label>
+                            <div className="relative">
+                                <input
+                                    type="number"
+                                    min="1"
+                                    max="31"
+                                    value={settings.payDay}
+                                    onChange={(e) => setSettings(prev => ({ ...prev, payDay: parseInt(e.target.value) || 20 }))}
+                                    className="w-full bg-gray-900 border border-gray-800 rounded-xl px-4 py-2.5 text-white text-base focus:outline-none focus:border-blue-500/50"
+                                />
+                                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 text-sm">일</span>
+                            </div>
+                        </div>
+                    </div>
+                    <p className="mt-3 text-[10px] text-gray-600 leading-relaxed italic">
+                        * 예: 시작일 25일 시, [전월 25일 ~ 당월 24일] 성과가 정산됩니다.
+                    </p>
+                </div>
+
+            {/* Delivery Tip Zones */}
+            <div id="guide-settings-tipzones" className="mt-8 pt-8 border-t border-gray-800">
+                <div className="flex items-center gap-2 mb-3">
+                    <h3 className="text-base font-bold text-gray-200">배송팁 상세 구역 관리</h3>
+                    <span className="px-2 py-0.5 bg-blue-500/10 text-blue-400 text-[10px] font-bold rounded-full border border-blue-500/20">
+                        NEW
+                    </span>
+                </div>
+                <p className="text-xs text-gray-500 mb-4 bg-gray-900/50 p-3 rounded-xl border border-gray-800 leading-relaxed">
+                    배송팁 작성 시 선택할 상세 구역(예: B01, C02 등)을 추가할 수 있습니다. 추가된 구역은 배송팁 목록의 필터와 입력 버튼으로 자동 반영됩니다.
+                </p>
+                <div className="space-y-3">
+                    {/* List of existing tipZones */}
+                    {settings.tipZones && settings.tipZones.length > 0 && (
+                        <div className="flex flex-wrap gap-2 mb-4">
+                            {settings.tipZones.map((zone, idx) => (
+                                <div key={idx} className="flex items-center gap-2 px-3 py-1.5 bg-gray-900 border border-gray-800 rounded-xl text-sm font-bold text-gray-300">
+                                    <span>{zone}</span>
+                                    <button
+                                        onClick={() => {
+                                            setSettings(prev => ({
+                                                ...prev,
+                                                tipZones: (prev.tipZones || []).filter((_, i) => i !== idx)
+                                            }));
+                                        }}
+                                        className="w-5 h-5 flex items-center justify-center rounded-full bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors active:scale-[0.98]"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+
+                    {/* Input for new tipZone */}
+                    <div className="flex gap-2">
+                        <input
+                            type="text"
+                            id="newTipZoneInput"
+                            placeholder="새 구역 추가 (예: B01)"
+                            onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                    const input = e.target as HTMLInputElement;
+                                    const val = input.value.trim();
+                                    if (val && !(settings.tipZones || []).includes(val)) {
+                                        setSettings(prev => ({ ...prev, tipZones: [...(prev.tipZones || []), val] }));
+                                        input.value = "";
+                                    }
+                                }
+                            }}
+                            className="flex-1 bg-gray-900 border border-gray-800 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-blue-500/50"
+                        />
+                        <button
+                            onClick={() => {
+                                const input = document.getElementById("newTipZoneInput") as HTMLInputElement;
+                                const val = input.value.trim();
+                                if (val && !(settings.tipZones || []).includes(val)) {
+                                    setSettings(prev => ({ ...prev, tipZones: [...(prev.tipZones || []), val] }));
+                                    input.value = "";
+                                }
+                            }}
+                            className="px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold rounded-xl transition-all active:scale-[0.98]"
+                        >
+                            추가
+                        </button>
                     </div>
                 </div>
             </div>

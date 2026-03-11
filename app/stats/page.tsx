@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback } from "react";
 import dynamic from "next/dynamic";
 import { Delivery, Settings, DEFAULT_SETTINGS } from "@/lib/types";
-import { loadSettings, loadDeliveries, saveSettings } from "@/lib/store";
+import { loadSettings, loadDeliveries, saveSettings, saveDelivery, deleteDelivery } from "@/lib/store";
 import MonthlyCalendar from "@/components/MonthlyCalendar";
 import {
     calcMonthlyStats,
@@ -11,10 +11,9 @@ import {
     formatNumber,
 } from "@/lib/calculations";
 
-// Dynamically import ChartView with no SSR to prevent hydration/rendering crashes
 const ChartView = dynamic(() => import("@/components/ChartView"), {
     ssr: false,
-    loading: () => <div className="h-56 bg-gray-900 animate-pulse rounded-xl" />
+    loading: () => <div className="h-48 bg-gray-900 animate-pulse rounded-xl" />,
 });
 
 export default function StatsPage() {
@@ -78,6 +77,26 @@ export default function StatsPage() {
         }
     };
 
+    const handleSaveDelivery = async (dateStr: string, total: number) => {
+        try {
+            await saveDelivery(dateStr, total);
+            await loadData();
+        } catch (err) {
+            console.error("Failed to save delivery:", err);
+        }
+    };
+
+    const handleDeleteDelivery = async (dateStr: string) => {
+        if (confirm("해당 날짜의 배송 기록을 삭제하시겠습니까?")) {
+            try {
+                await deleteDelivery(dateStr);
+                await loadData();
+            } catch (err) {
+                console.error("Failed to delete delivery:", err);
+            }
+        }
+    };
+
     const [year, month] = selectedMonth.split("-").map(Number);
     const { totalDeliveries, totalRevenue } = calcMonthlyStats(
         deliveries,
@@ -132,81 +151,37 @@ export default function StatsPage() {
             </div>
 
             {/* Monthly Summary */}
-            <div id="guide-stats-summary" className="grid grid-cols-2 gap-3 mb-6">
+            <div id="guide-stats-summary" className="grid grid-cols-[minmax(0,3.8fr)_minmax(0,6.2fr)] gap-3 mb-6">
                 <div className="bg-gray-900/80 backdrop-blur-md border border-gray-800/60 rounded-2xl p-4 shadow-xl shadow-black/20 flex flex-col justify-between relative overflow-hidden">
                     <div className="absolute top-0 right-0 w-24 h-24 bg-blue-500/5 rounded-full blur-2xl -mr-6 -mt-6"></div>
                     <p className="text-xs text-blue-300/80 font-medium mb-1 relative z-10">월 총 배송</p>
-                    <p className="text-2xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-white via-gray-100 to-gray-400 tracking-tight relative z-10">
+                    <p className="text-2xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-white via-gray-100 to-gray-400 tracking-tight relative z-10 whitespace-nowrap">
                         {formatNumber(totalDeliveries)}건
                     </p>
                 </div>
                 <div className="bg-gray-900/80 backdrop-blur-md border border-gray-800/60 rounded-2xl p-4 shadow-xl shadow-black/20 flex flex-col justify-between relative overflow-hidden">
                     <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-500/10 rounded-full blur-2xl -mr-6 -mt-6"></div>
                     <p className="text-xs text-indigo-300/80 font-medium mb-1 relative z-10">월 총 매출</p>
-                    <p className="text-2xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-white via-indigo-100 to-indigo-300 tracking-tight relative z-10">
+                    <p className="text-2xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-white via-indigo-100 to-indigo-300 tracking-tight relative z-10 whitespace-nowrap">
                         {formatWon(totalRevenue)}
                     </p>
                 </div>
             </div>
 
-            {/* Monthly Calendar */}
+            {/* Chart */}
+            <div className="mb-6">
+                <ChartView deliveries={deliveries} />
+            </div>
             <MonthlyCalendar
                 selectedMonth={selectedMonth}
                 deliveries={monthDeliveries}
                 restDaysOfWeek={settings.restDaysOfWeek || [0]}
                 restDateOverrides={settings.restDateOverrides || {}}
                 onToggleRestDate={handleToggleRestDate}
+                onSaveDelivery={handleSaveDelivery}
+                onDeleteDelivery={handleDeleteDelivery}
             />
 
-            {/* Chart */}
-            <ChartView deliveries={monthDeliveries} />
-
-            {/* Day-by-day List */}
-            <div className="mt-5">
-                <h3 className="text-base font-bold text-gray-200 mb-3">일별 기록</h3>
-                <div className="space-y-1.5">
-                    {monthDeliveries
-                        .sort((a, b) => b.date.localeCompare(a.date))
-                        .map((d) => {
-                            const revenue = calcDailyRevenue(d.total, settings.zones);
-                            return (
-                                <div
-                                    key={d.date}
-                                    className="flex items-center justify-between bg-gray-900/40 hover:bg-gray-800/80
-                             border border-gray-800/50 rounded-xl px-4 py-3 transition-colors duration-200"
-                                >
-                                    <span className="text-gray-400 text-sm font-medium">
-                                        {(() => {
-                                            const safeDate = (d.date || "").replace(/-/g, "/");
-                                            return new Date(safeDate + " 00:00:00").toLocaleDateString(
-                                                "ko-KR",
-                                                { month: "short", day: "numeric", weekday: "short" }
-                                            );
-                                        })()}
-                                    </span>
-                                    <div className="text-right">
-                                        <span className="text-gray-200 font-bold text-sm tracking-tight">
-                                            {formatNumber(d.total)}건
-                                        </span>
-                                        <span className="text-gray-500 text-xs ml-2 font-medium">
-                                            {formatWon(revenue)}
-                                        </span>
-                                    </div>
-                                </div>
-                            );
-                        })}
-                    {monthDeliveries.length === 0 && (
-                        <div className="text-center py-10 bg-gray-900/20 rounded-2xl border border-gray-800/30 border-dashed">
-                            <svg className="w-8 h-8 text-gray-700 mx-auto mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                            </svg>
-                            <p className="text-gray-500 text-sm font-medium">
-                                이 달의 배송 기록이 없습니다
-                            </p>
-                        </div>
-                    )}
-                </div>
-            </div>
         </div>
     );
 }

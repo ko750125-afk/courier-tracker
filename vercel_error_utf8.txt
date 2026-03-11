@@ -1,0 +1,142 @@
+﻿node.exe : Retrieving project
+??Deploying kos-projects-b234
+eadb/courier-tracker
+위치 줄:1 문자:1
++ & "C:\Program Files\nodejs/
+node.exe" "C:\Program Files\n
+odejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~
+    + CategoryInfo           
+   : NotSpecified: (Retriev  
+  ing proj...courier-track   
+ er:String) [], RemoteExc    
+eption
+    + FullyQualifiedErrorId  
+   : NativeCommandError
+ 
+Uploading [------------------
+--] (0.0B/29.1KB)
+Uploading [===========-------
+--] (16.0KB/29.1KB)
+Uploading [==================
+==] (29.1KB/29.1KB)
+Inspect: https://vercel.com/k
+os-projects-b234eadb/courier-
+tracker/GJ1bTiTevNcfgcYLc1URv
+eCTCMUE [2s]
+Production: https://courier-t
+racker-11re5a5fz-kos-projects
+-b234eadb.vercel.app [2s]
+Building...
+Building...
+Building: Running build in Wa
+shington, D.C., USA (East) ??
+iad1
+Building: Build machine confi
+guration: 2 cores, 8 GB
+Building: Retrieving list of 
+deployment files...
+Building: Downloading 48 depl
+oyment files...
+Building: Restored build cach
+e from previous deployment (F
+h37Ynnzz4LwHyiZ6TctmiXHGpuf)
+Building: Running "vercel bui
+ld"
+Building: Vercel CLI 50.28.0
+Building: Installing dependen
+cies...
+Building: up to date in 5s
+Building: 151 packages are lo
+oking for funding
+Building: run `npm fund` for 
+details
+Building: Detected Next.js ve
+rsion: 14.2.14
+Building: Running "npm run bu
+ild"
+Building: > courier-tracker@0
+.1.0 build
+Building: > next build
+Building: ??Next.js 14.2.14
+Building: Creating an optimiz
+ed production build ...
+Building: ??Compiled successf
+ully
+Building: Skipping validation
+ of types
+Building: Skipping linting
+Building: Collecting page dat
+a ...
+Building: Generating static p
+ages (0/8) ...
+Building: Generating static p
+ages (2/8)
+Building: Generating static p
+ages (4/8)
+Building: Generating static p
+ages (6/8)
+Building: ??Generating static
+ pages (8/8)
+Building: Finalizing page opt
+imization ...
+Building: Collecting build tr
+aces ...
+Building: Route (app)        
+                      Size   
+  First Load JS
+Building: ????/              
+                      4.58 kB
+         180 kB
+Building: ????/_not-found    
+                      873 B  
+        88.2 kB
+Building: ????/settings      
+                      5.69 kB
+         181 kB
+Building: ????/stats         
+                      6.34 kB
+         182 kB
+Building: ????/tips          
+                      6.41 kB
+         182 kB
+Building: + First Load JS sha
+red by all            87.3 kB
+Building: ??chunks/117-cd7f62
+6f1da23dae.js       31.6 kB
+Building: ??chunks/fd9d1056-d
+c67c195cf67e9da.js  53.6 kB
+Building: ??other shared chun
+ks (total)          2.05 kB
+Building: ?? (Static)  preren
+dered as static content
+Building: Traced Next.js serv
+er files in: 33.754ms
+Building: Created all serverl
+ess functions in: 105.962ms
+Building: Collected static fi
+les (public/, static/, .next/
+static): 6.051ms
+Building: Build Completed in 
+/vercel/output [20s]
+Building: Deploying outputs..
+.
+[2K[1A[2K[GProduction: ht
+tps://courier-tracker-11re5a5
+fz-kos-projects-b234eadb.verc
+el.app [34s]
+Completing...
+Aliased: https://courier-trac
+ker-app.vercel.app [34s]
+
+Common next commands:
+- `vercel inspect courier-tra
+cker-11re5a5fz-kos-projects-b
+234eadb.vercel.app --logs`
+- `vercel redeploy courier-tr
+acker-11re5a5fz-kos-projects-
+b234eadb.vercel.app`
+https://courier-tracker-11re5a5fz-kos-projects-b234eadb.vercel.app
+

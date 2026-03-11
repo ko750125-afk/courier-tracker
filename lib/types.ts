@@ -4,6 +4,7 @@ export interface DeliveryTip {
     content: string;
     photos?: string[]; // base64 data URLs from camera
     createdAt: string; // ISO date
+    zone?: string; // 상세 구역
 }
 
 export interface Zone {
@@ -20,15 +21,19 @@ export interface Delivery {
 }
 
 export type WorkType = "5day" | "6day" | "alternate5" | "custom";
+export type WorkShift = "day" | "night";
 
 export interface Settings {
     zones: Zone[];
     workType: WorkType;
     customWorkDays?: number; // only used when workType is "custom"
     payDay: number; // 월급일 (default: 20)
+    settlementDay: number; // 정산 시작일 (default: 25)
     sharedId?: string; // 공유 ID (for 2인1조 or multiple devices)
     restDaysOfWeek: number[]; // 기본으로 쉬는 요일 (0: 일요일, 1: 월요일, ..., 6: 토요일)
     restDateOverrides: Record<string, boolean>; // 특정 날짜 지정 휴무 여부. 키: "YYYY-MM-DD", 값: true(휴일), false(근무일(강제))
+    tipZones: string[]; // 배송팁 상세 구역 관리
+    workShift: WorkShift; // 근무 시간 (주간/야간)
 }
 
 export const WORK_TYPE_LABELS: Record<WorkType, string> = {
@@ -47,8 +52,11 @@ export const DEFAULT_SETTINGS: Settings = {
     zones: DEFAULT_ZONES,
     workType: "5day",
     payDay: 20,
+    settlementDay: 25,
     restDaysOfWeek: [0], // 기본적으로 일요일(0)을 쉬는 날로 설정
     restDateOverrides: {},
+    tipZones: [],
+    workShift: "day",
 };
 
 export const TEST_DELIVERIES: Delivery[] = [

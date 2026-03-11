@@ -132,34 +132,46 @@ export function calcNextPayment(
     deliveries: Delivery[],
     zones: Zone[],
     today: Date,
+    settlementDay: number = 25,
     payDay: number = 20
 ): { amount: number; paymentDate: string; paymentLabel: string; periodStart: string; periodEnd: string } {
     const year = today.getFullYear();
-    const month = today.getMonth() + 1;
-    const day = today.getDate();
+    const month = today.getMonth() + 1; // 1-indexed
+    const date = today.getDate();
 
-    let pSYear: number, pSMonth: number, pSDay: number;
-    let pEYear: number, pEMonth: number, pEDay: number;
-    let payY: number, payM: number;
+    let pSYear, pSMonth, pSDay;
+    let pEYear, pEMonth, pEDay;
+    let payY, payM;
 
-    if (day <= 5) {
-        const start = new Date(year, month - 3, 25);
-        pSYear = start.getFullYear(); pSMonth = start.getMonth() + 1; pSDay = 25;
-        const end = new Date(year, month - 2, 5);
-        pEYear = end.getFullYear(); pEMonth = end.getMonth() + 1; pEDay = 5;
-        payY = year; payM = month;
-    } else if (day <= 25) {
-        const start = new Date(year, month - 2, 25);
-        pSYear = start.getFullYear(); pSMonth = start.getMonth() + 1; pSDay = 25;
-        pEYear = year; pEMonth = month; pEDay = 5;
-        const payDate = new Date(year, month, payDay);
-        payY = payDate.getFullYear(); payM = payDate.getMonth() + 1;
+    // Logic: If today >= settlementDay, we are in the period for the payment in "Month + 2"
+    // Example: Today March 26, settlementDay 25.
+    // Ongoing period: March 25 ~ April 24.
+    // This will be paid on May 20.
+
+    // Most users want to see the "Current Accumulating Period"
+    if (date < settlementDay) {
+        // We are currently in the period starting last month to this month
+        // e.g., Feb 25 ~ March 24 (if today is March 11)
+        const start = new Date(year, month - 2, settlementDay);
+        pSYear = start.getFullYear(); pSMonth = start.getMonth() + 1; pSDay = settlementDay;
+
+        const end = new Date(year, month - 1, settlementDay - 1);
+        pEYear = end.getFullYear(); pEMonth = end.getMonth() + 1; pEDay = settlementDay - 1;
+
+        // This will be paid on April 20 (Month + 1)
+        const pay = new Date(year, month, payDay);
+        payY = pay.getFullYear(); payM = pay.getMonth() + 1;
     } else {
-        pSYear = year; pSMonth = month; pSDay = 25;
-        const end = new Date(year, month, 5);
-        pEYear = end.getFullYear(); pEMonth = end.getMonth() + 1; pEDay = 5;
-        const payDate = new Date(year, month + 1, payDay);
-        payY = payDate.getFullYear(); payM = payDate.getMonth() + 1;
+        // We are in the period starting this month to next month
+        // e.g., March 25 ~ April 24 (if today is March 26)
+        pSYear = year; pSMonth = month; pSDay = settlementDay;
+
+        const end = new Date(year, month, settlementDay - 1); // This automatically handles month overflow
+        pEYear = end.getFullYear(); pEMonth = end.getMonth() + 1; pEDay = settlementDay - 1;
+
+        // This will be paid on May 20 (Month + 2)
+        const pay = new Date(year, month + 1, payDay);
+        payY = pay.getFullYear(); payM = pay.getMonth() + 1;
     }
 
     const periodStart = `${pSYear}-${String(pSMonth).padStart(2, "0")}-${String(pSDay).padStart(2, "0")}`;

@@ -1,8 +1,6 @@
 "use client";
 import { useState } from "react";
 import { Zone, DeliveryTip } from "@/lib/types";
-import DeliveryTips from "./DeliveryTips";
-
 interface ZoneManagerProps {
     zones: Zone[];
     onChange: (zones: Zone[]) => void;
@@ -10,7 +8,6 @@ interface ZoneManagerProps {
 
 export default function ZoneManager({ zones, onChange }: ZoneManagerProps) {
     const [editingId, setEditingId] = useState<string | null>(null);
-    const [tipsZoneId, setTipsZoneId] = useState<string | null>(null);
 
     const totalRatio = zones.reduce((s, z) => s + z.ratio, 0);
     const isValid = Math.abs(totalRatio - 1) < 0.001;
@@ -42,12 +39,6 @@ export default function ZoneManager({ zones, onChange }: ZoneManagerProps) {
     const removeZone = (id: string) => {
         onChange(zones.filter((z) => z.id !== id));
     };
-
-    const handleTipsUpdate = (zoneId: string, tips: DeliveryTip[]) => {
-        onChange(zones.map((z) => (z.id === zoneId ? { ...z, tips } : z)));
-    };
-
-    const tipsZone = zones.find((z) => z.id === tipsZoneId);
 
     return (
         <div>
@@ -146,22 +137,6 @@ export default function ZoneManager({ zones, onChange }: ZoneManagerProps) {
                                         </p>
                                     </div>
                                 </div>
-                                <button
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        setTipsZoneId(zone.id);
-                                    }}
-                                    className="w-full py-1.5 bg-gray-800 border border-gray-700 rounded-lg
-                                               text-xs text-gray-400 font-medium hover:border-blue-500/40
-                                               hover:text-blue-400 transition-colors flex items-center justify-center gap-1"
-                                >
-                                    💡 배송팁
-                                    {(zone.tips?.length ?? 0) > 0 && (
-                                        <span className="bg-blue-500/20 text-blue-400 px-1.5 py-0.5 rounded-full text-[10px]">
-                                            {zone.tips!.length}
-                                        </span>
-                                    )}
-                                </button>
                             </div>
                         )}
                     </div>
@@ -181,15 +156,6 @@ export default function ZoneManager({ zones, onChange }: ZoneManagerProps) {
                 <p className="text-red-400 text-xs mt-2 text-center">
                     ⚠️ 비율 합계가 100%가 되어야 합니다
                 </p>
-            )}
-
-            {/* Delivery Tips Modal */}
-            {tipsZone && (
-                <DeliveryTips
-                    zone={tipsZone}
-                    onUpdate={(tips) => handleTipsUpdate(tipsZone.id, tips)}
-                    onClose={() => setTipsZoneId(null)}
-                />
             )}
         </div>
     );
