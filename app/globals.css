@@ -1,6 +1,50 @@
+/* tailwindcss base */
 @tailwind base;
+/* tailwindcss components */
 @tailwind components;
+/* tailwindcss utilities */
 @tailwind utilities;
+
+:root {
+  --background: #020617;
+  --foreground: #f8fafc;
+  --accent: #3b82f6;
+  --accent-glow: rgba(59, 130, 246, 0.4);
+  --glass-bg: rgba(30, 41, 59, 0.5);
+  --glass-border: rgba(255, 255, 255, 0.1);
+}
+
+@layer components {
+  .glass-card {
+    @apply bg-slate-900/80 backdrop-blur-md border border-white/5 rounded-2xl shadow-xl transition-all duration-300;
+  }
+  
+  .glass-card:hover {
+    @apply border-white/10 bg-slate-800/90 shadow-lg;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .premium-glow {
+    @apply relative overflow-hidden;
+  }
+
+  .premium-glow::before {
+    content: "";
+    @apply absolute -inset-px bg-gradient-to-r from-blue-500/30 to-purple-500/30 rounded-[inherit] -z-10 opacity-0 transition-opacity duration-300;
+  }
+
+  .premium-glow:hover::before {
+    @apply opacity-100;
+  }
+
+}
 
 * {
   -webkit-tap-highlight-color: transparent;
@@ -36,5 +80,7 @@ input[type="number"]::-webkit-inner-spin-button {
 }
 
 input[type="number"] {
+  -webkit-appearance: none;
   -moz-appearance: textfield;
+  appearance: textfield;
 }

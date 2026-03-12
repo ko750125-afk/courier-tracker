@@ -1,13 +1,13 @@
-import { Zone, Delivery, WorkType, Settings } from "./types";
+import { Zone, Delivery, WorkType, Settings, SettlementBreakdown, DailyBreakdown } from "./types";
 
 /**
  * Calculate revenue for a single day's deliveries
  */
-export function calcDailyRevenue(total: number, zones: Zone[], settings?: Settings): number {
+export function calcDailyRevenue(total: number, zones: Zone[], settings?: Settings, includeIncentives: boolean = false): number {
     if (!zones || !Array.isArray(zones)) return 0;
 
     let bonus = 0;
-    if (settings?.isCoupangMode) {
+    if (includeIncentives && settings?.isCoupangMode) {
         if (settings.useLinkedIncentive) bonus += settings.linkedIncentive || 0;
         if (settings.useSoloIncentive) bonus += settings.soloIncentive || 0;
     }
@@ -18,6 +18,38 @@ export function calcDailyRevenue(total: number, zones: Zone[], settings?: Settin
         const finalPrice = (zone.price || 0) + bonus;
         return sum + count * finalPrice;
     }, 0);
+}
+
+/**
+ * Calculate detailed revenue breakdown for a single day
+ */
+export function calcDailyBreakdown(total: number, zones: Zone[], settings?: Settings): DailyBreakdown {
+    if (!zones || !Array.isArray(zones)) {
+        return { date: "", count: total, baseRevenue: 0, incentive: 0, total: 0 };
+    }
+
+    let incentivePerUnit = 0;
+    if (settings?.isCoupangMode) {
+        if (settings.useLinkedIncentive) incentivePerUnit += settings.linkedIncentive || 0;
+        if (settings.useSoloIncentive) incentivePerUnit += settings.soloIncentive || 0;
+    }
+
+    let baseRevenue = 0;
+    zones.forEach(zone => {
+        if (!zone) return;
+        const count = Math.round((total || 0) * (zone.ratio || 0));
+        baseRevenue += count * (zone.price || 0);
+    });
+
+    const incentiveTotal = (total || 0) * incentivePerUnit;
+    
+    return {
+        date: "",
+        count: total,
+        baseRevenue,
+        incentive: incentiveTotal,
+        total: baseRevenue + incentiveTotal
+    };
 }
 
 /**
@@ -142,7 +174,14 @@ export function calcNextPayment(
     zones: Zone[],
     today: Date,
     settings: Settings
-): { amount: number; paymentDate: string; paymentLabel: string; periodStart: string; periodEnd: string } {
+): { 
+    amount: number; 
+    paymentDate: string; 
+    paymentLabel: string; 
+    periodStart: string; 
+    periodEnd: string;
+    breakdown: SettlementBreakdown;
+} {
     const settlementDay = settings.settlementDay || 25;
     const payDay = settings.payDay || 20;
     const year = today.getFullYear();
@@ -153,33 +192,21 @@ export function calcNextPayment(
     let pEYear, pEMonth, pEDay;
     let payY, payM;
 
-    // Logic: If today >= settlementDay, we are in the period for the payment in "Month + 2"
-    // Example: Today March 26, settlementDay 25.
-    // Ongoing period: March 25 ~ April 24.
-    // This will be paid on May 20.
-
-    // Most users want to see the "Current Accumulating Period"
     if (date < settlementDay) {
-        // We are currently in the period starting last month to this month
-        // e.g., Feb 25 ~ March 24 (if today is March 11)
         const start = new Date(year, month - 2, settlementDay);
         pSYear = start.getFullYear(); pSMonth = start.getMonth() + 1; pSDay = settlementDay;
 
         const end = new Date(year, month - 1, settlementDay - 1);
         pEYear = end.getFullYear(); pEMonth = end.getMonth() + 1; pEDay = settlementDay - 1;
 
-        // This will be paid on April 20 (Month + 1)
         const pay = new Date(year, month, payDay);
         payY = pay.getFullYear(); payM = pay.getMonth() + 1;
     } else {
-        // We are in the period starting this month to next month
-        // e.g., March 25 ~ April 24 (if today is March 26)
         pSYear = year; pSMonth = month; pSDay = settlementDay;
 
-        const end = new Date(year, month, settlementDay - 1); // This automatically handles month overflow
+        const end = new Date(year, month, settlementDay - 1);
         pEYear = end.getFullYear(); pEMonth = end.getMonth() + 1; pEDay = settlementDay - 1;
 
-        // This will be paid on May 20 (Month + 2)
         const pay = new Date(year, month + 1, payDay);
         payY = pay.getFullYear(); payM = pay.getMonth() + 1;
     }
@@ -189,17 +216,60 @@ export function calcNextPayment(
 
     const periodDeliveries = (deliveries || []).filter(
         (d) => d && d.date >= periodStart && d.date <= periodEnd
-    );
+    ).sort((a, b) => (a.date || "").localeCompare(b.date || ""));
 
-    const amount = periodDeliveries.reduce(
-        (s, d) => s + calcDailyRevenue(d.total, zones, settings),
-        0
-    );
+    const dailyBreakdowns: DailyBreakdown[] = periodDeliveries.map(d => {
+        const bd = calcDailyBreakdown(d.total, zones, settings);
+        bd.date = d.date;
+        return bd;
+    });
+
+    // Aggregate counts by zone for the entire period
+    const zoneCountMap: Record<string, number> = {};
+    periodDeliveries.forEach(d => {
+        zones.forEach(zone => {
+            const count = Math.round((d.total || 0) * (zone.ratio || 0));
+            zoneCountMap[zone.name] = (zoneCountMap[zone.name] || 0) + count;
+        });
+    });
+
+    let incentivePerUnit = 0;
+    if (settings?.isCoupangMode) {
+        if (settings.useLinkedIncentive) incentivePerUnit += settings.linkedIncentive || 0;
+        if (settings.useSoloIncentive) incentivePerUnit += settings.soloIncentive || 0;
+    }
+
+    const zoneSummaries = zones.map(zone => {
+        const totalCount = zoneCountMap[zone.name] || 0;
+        const basePrice = zone.price || 0;
+        const totalPrice = basePrice + incentivePerUnit;
+        const subtotal = totalCount * totalPrice;
+        return {
+            zoneName: zone.name,
+            basePrice,
+            incentivePerUnit,
+            totalPrice,
+            totalCount,
+            subtotal
+        };
+    });
+
+    const baseTotal = dailyBreakdowns.reduce((s, bd) => s + bd.baseRevenue, 0);
+    const incentiveTotal = dailyBreakdowns.reduce((s, bd) => s + bd.incentive, 0);
+    const amount = baseTotal + incentiveTotal;
+
+    const breakdown: SettlementBreakdown = {
+        totalamount: amount,
+        baseTotal,
+        incentiveTotal,
+        days: dailyBreakdowns,
+        zoneSummaries
+    };
 
     const paymentDate = `${payY}-${String(payM).padStart(2, "0")}-${String(payDay).padStart(2, "0")}`;
     const paymentLabel = `${payM}월 ${payDay}일 예상 수령액`;
 
-    return { amount, paymentDate, paymentLabel, periodStart, periodEnd };
+    return { amount, paymentDate, paymentLabel, periodStart, periodEnd, breakdown };
 }
 
 /**

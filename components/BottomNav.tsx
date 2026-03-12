@@ -8,7 +8,7 @@ const tabs = [
         label: "홈",
         icon: (active: boolean) => (
             <svg
-                className={`w-6 h-6 ${active ? "text-blue-400" : "text-gray-500"}`}
+                className={`w-6 h-6 ${active ? "text-blue-400" : "text-slate-500"}`}
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -27,7 +27,7 @@ const tabs = [
         label: "통계",
         icon: (active: boolean) => (
             <svg
-                className={`w-6 h-6 ${active ? "text-blue-400" : "text-gray-500"}`}
+                className={`w-6 h-6 ${active ? "text-blue-400" : "text-slate-500"}`}
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -46,7 +46,7 @@ const tabs = [
         label: "배송팁",
         icon: (active: boolean) => (
             <svg
-                className={`w-6 h-6 ${active ? "text-blue-400" : "text-gray-500"}`}
+                className={`w-6 h-6 ${active ? "text-blue-400" : "text-slate-500"}`}
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -65,7 +65,7 @@ const tabs = [
         label: "설정",
         icon: (active: boolean) => (
             <svg
-                className={`w-6 h-6 ${active ? "text-blue-400" : "text-gray-500"}`}
+                className={`w-6 h-6 ${active ? "text-blue-400" : "text-slate-500"}`}
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -90,8 +90,8 @@ export default function BottomNav() {
     const pathname = usePathname();
 
     return (
-        <nav className="fixed bottom-0 left-0 right-0 z-50 bg-gray-900/95 backdrop-blur-xl border-t border-gray-800">
-            <div className="max-w-lg mx-auto flex justify-around py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
+        <nav className="fixed bottom-0 left-0 right-0 z-50 bg-slate-900/40 backdrop-blur-2xl border-t border-white/10 pb-[env(safe-area-inset-bottom)]">
+            <div className="max-w-lg mx-auto flex justify-around py-3">
                 {tabs.map((tab) => {
                     const active = pathname === tab.href;
                     return (
@@ -99,15 +99,26 @@ export default function BottomNav() {
                             key={tab.href}
                             href={tab.href}
                             id={`guide-nav-${tab.href === "/" ? "home" : tab.href.replace("/", "")}`}
-                            className={`relative flex flex-col items-center gap-1 min-w-[64px] px-3 py-2 rounded-2xl transition-all duration-300 ${active ? "text-blue-400 bg-blue-500/10" : "text-gray-500 hover:text-gray-300 hover:bg-gray-800/50"
-                                }`}
+                            className="relative flex flex-col items-center gap-1.5 min-w-[70px] px-1 py-1 rounded-2xl transition-all duration-500"
                         >
-                            <div className="relative z-10 transition-transform duration-300">
-                                {tab.icon(active)}
-                            </div>
-                            <span className={`text-[10px] sm:text-xs font-semibold tracking-wide z-10 ${active ? "text-blue-400" : "text-gray-500"}`}>{tab.label}</span>
+                            {/* Active background glow */}
                             {active && (
-                                <div className="absolute inset-0 bg-blue-500/5 blur-md rounded-2xl -z-0"></div>
+                                <div className="absolute inset-0 bg-blue-500/20 blur-2xl rounded-full scale-110 animate-pulse"></div>
+                            )}
+                            
+                            <div className={`relative z-10 transition-all duration-500 ${active ? "scale-110 -translate-y-1" : "scale-100 translate-y-0"}`}>
+                                <div className={`relative ${active ? "drop-shadow-[0_0_8px_rgba(96,165,250,0.8)]" : ""}`}>
+                                    {tab.icon(active)}
+                                </div>
+                            </div>
+                            
+                            <span className={`text-[10px] font-black uppercase tracking-widest z-10 transition-colors duration-500 ${active ? "text-blue-400" : "text-slate-500"}`}>
+                                {tab.label}
+                            </span>
+
+                            {/* Active indicator dot */}
+                            {active && (
+                                <div className="absolute -bottom-1 w-1 h-1 bg-blue-400 rounded-full shadow-[0_0_8px_rgba(96,165,250,1)]"></div>
                             )}
                         </Link>
                     );

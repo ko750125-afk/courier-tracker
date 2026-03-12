@@ -41,8 +41,9 @@ export default function RootLayout({
     <html lang="ko" suppressHydrationWarning>
       <body
         suppressHydrationWarning
-        className={`${inter.className} bg-gray-950 text-white min-h-screen antialiased`}
+        className={`${inter.className} bg-slate-950 text-slate-100 min-h-screen antialiased selection:bg-blue-500/30`}
       >
+        <div className="fixed inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-10 pointer-events-none" />
         <script
           dangerouslySetInnerHTML={{
             __html: `
@@ -57,7 +58,7 @@ export default function RootLayout({
         <ErrorWatcher />
         <OnboardingGuide />
         <FunctionalGuide />
-        <main className="max-w-lg mx-auto px-4 pt-6 pb-24">{children}</main>
+        <main className="relative max-w-lg mx-auto px-4 pt-8 pb-28 focus:outline-none">{children}</main>
         <BottomNav />
       </body>
     </html>

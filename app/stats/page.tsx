@@ -124,22 +124,22 @@ export default function StatsPage() {
     }
 
     return (
-        <div>
-            <h1 className="text-xl font-bold text-gray-100 mb-5">통계</h1>
+        <div className="space-y-6">
+            <h1 className="text-2xl font-black text-white px-1 tracking-tight">통계</h1>
 
             {/* Month Selector */}
-            <div id="guide-month-selector" className="flex gap-2 mb-6 overflow-x-auto pb-2 scrollbar-hide">
+            <div id="guide-month-selector" className="flex gap-2 mb-2 overflow-x-auto pb-4 scrollbar-hide">
                 {months.map((m) => {
-                    // Safari compatible date parsing
                     const [y, mm] = m.split("-");
                     const date = new Date(parseInt(y), parseInt(mm) - 1, 1);
+                    const isActive = selectedMonth === m;
                     return (
                         <button
                             key={m}
                             onClick={() => setSelectedMonth(m)}
-                            className={`px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-all duration-300 active:scale-95 ${selectedMonth === m
-                                ? "bg-gradient-to-r from-blue-600/90 to-indigo-600/90 text-white shadow-lg shadow-blue-500/20 border border-transparent"
-                                : "bg-gray-900/50 hover:bg-gray-800 text-gray-400 border border-gray-800/80"
+                            className={`px-4 py-2 rounded-xl text-sm font-bold whitespace-nowrap transition-all duration-200 active:scale-95 ${isActive
+                                ? "bg-blue-600 text-white shadow-lg"
+                                : "bg-slate-900/50 text-slate-400 border border-slate-800"
                                 }`}
                         >
                             {date.toLocaleDateString("ko-KR", {
@@ -152,25 +152,26 @@ export default function StatsPage() {
             </div>
 
             {/* Monthly Summary */}
-            <div id="guide-stats-summary" className="grid grid-cols-[minmax(0,3.8fr)_minmax(0,6.2fr)] gap-3 mb-6">
-                <div className="bg-gray-900/80 backdrop-blur-md border border-gray-800/60 rounded-2xl p-4 shadow-xl shadow-black/20 flex flex-col justify-between relative overflow-hidden">
-                    <div className="absolute top-0 right-0 w-24 h-24 bg-blue-500/5 rounded-full blur-2xl -mr-6 -mt-6"></div>
-                    <p className="text-xs text-blue-300/80 font-medium mb-1 relative z-10">월 총 배송</p>
-                    <p className="text-2xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-white via-gray-100 to-gray-400 tracking-tight relative z-10 whitespace-nowrap">
-                        {formatNumber(totalDeliveries)}건
-                    </p>
+            <div id="guide-stats-summary" className="grid grid-cols-2 gap-4">
+                <div className="bg-slate-900/50 border border-slate-800 p-5 rounded-2xl">
+                    <p className="text-[10px] uppercase tracking-wider text-slate-500 font-bold mb-1">월간 배송건수</p>
+                    <div className="flex items-baseline gap-1">
+                        <p className="text-3xl font-black text-white">
+                            {formatNumber(totalDeliveries)}
+                        </p>
+                        <span className="text-xs font-bold text-slate-500">건</span>
+                    </div>
                 </div>
-                <div className="bg-gray-900/80 backdrop-blur-md border border-gray-800/60 rounded-2xl p-4 shadow-xl shadow-black/20 flex flex-col justify-between relative overflow-hidden">
-                    <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-500/10 rounded-full blur-2xl -mr-6 -mt-6"></div>
-                    <p className="text-xs text-indigo-300/80 font-medium mb-1 relative z-10">월 총 매출</p>
-                    <p className="text-2xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-white via-indigo-100 to-indigo-300 tracking-tight relative z-10 whitespace-nowrap">
+                <div className="bg-slate-900/50 border border-slate-800 p-5 rounded-2xl">
+                    <p className="text-[10px] uppercase tracking-wider text-slate-500 font-bold mb-1">월간 합산수익</p>
+                    <p className="text-2xl font-black text-blue-400">
                         {formatWon(totalRevenue)}
                     </p>
                 </div>
             </div>
 
             {/* Chart */}
-            <div className="mb-6">
+            <div className="bg-slate-900/50 border border-slate-800 p-2 rounded-2xl overflow-hidden">
                 <ChartView deliveries={deliveries} />
             </div>
             <MonthlyCalendar

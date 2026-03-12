@@ -101,7 +101,7 @@ export default function SettingsPage() {
                     ) : saved ? (
                         <span className="text-[10px] text-green-400">✓ 저장됨</span>
                     ) : (
-                        <span className="text-[10px] text-gray-600">모든 변경사항 자동 저장</span>
+                        <span className="text-[10px] text-slate-500">모든 변경사항 자동 저장</span>
                     )}
                 </div>
             </div>
@@ -110,16 +110,16 @@ export default function SettingsPage() {
             <ZoneManager zones={settings.zones} onChange={handleZonesChange} />
 
             {/* Work Pattern */}
-            <div id="guide-settings-worktype" className="mt-8">
-                <h3 className="text-base font-bold text-gray-200 mb-3">근무 패턴</h3>
+            <div id="guide-settings-worktype" className="mt-8 bg-slate-900/50 border border-slate-800 p-6 rounded-2xl">
+                <h3 className="text-base font-bold text-slate-200 mb-4 uppercase tracking-widest text-xs">근무 패턴</h3>
                 <div className="grid grid-cols-2 gap-2">
                     {(Object.keys(WORK_TYPE_LABELS) as WorkType[]).map((type) => (
                         <button
                             key={type}
                             onClick={() => handleWorkTypeChange(type)}
                             className={`py-2.5 px-4 rounded-xl text-center text-sm font-medium transition-all ${settings.workType === type
-                                ? "bg-blue-600 text-white"
-                                : "bg-gray-900 text-gray-400 border border-gray-800 hover:border-gray-700"
+                                ? "bg-blue-600 text-white shadow-lg"
+                                : "bg-slate-950/50 text-slate-400 border border-slate-800"
                                 }`}
                         >
                             {WORK_TYPE_LABELS[type]}
@@ -151,16 +151,16 @@ export default function SettingsPage() {
             </div>
 
             {/* Work Shift */}
-            <div className="mt-8 pt-8 border-t border-gray-800">
-                <h3 className="text-base font-bold text-gray-200 mb-3">근무 시간 (주간/야간)</h3>
+            <div className="mt-8 bg-slate-900/50 border border-slate-800 p-6 rounded-2xl">
+                <h3 className="text-base font-bold text-slate-200 mb-4 uppercase tracking-widest text-xs">근무 시간 (주간/야간)</h3>
                 <div className="grid grid-cols-2 gap-2">
                     {(["day", "night"] as WorkShift[]).map((shift) => (
                         <button
                             key={shift}
                             onClick={() => setSettings(prev => ({ ...prev, workShift: shift }))}
                             className={`py-2.5 px-4 rounded-xl text-center text-sm font-medium transition-all ${settings.workShift === shift
-                                ? "bg-blue-600 text-white shadow-lg shadow-blue-600/20"
-                                : "bg-gray-900 text-gray-400 border border-gray-800 hover:border-gray-700"
+                                ? "bg-blue-600 text-white shadow-lg"
+                                : "bg-slate-950/50 text-slate-400 border border-slate-800"
                                 }`}
                         >
                             <div className="flex flex-col items-center gap-1">
@@ -176,9 +176,9 @@ export default function SettingsPage() {
             </div>
 
             {/* Coupang Incentive Settings */}
-            <div className="mt-8 pt-8 border-t border-gray-800">
+            <div className="mt-8 bg-slate-900/50 border border-slate-800 p-6 rounded-2xl">
                 <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-base font-bold text-gray-200">쿠팡 신선백 인센티브</h3>
+                    <h3 className="text-base font-bold text-slate-200 uppercase tracking-widest text-xs">쿠팡 신선백 인센티브</h3>
                     <button
                         onClick={() => setSettings(prev => ({ ...prev, isCoupangMode: !prev.isCoupangMode }))}
                         className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
@@ -201,7 +201,7 @@ export default function SettingsPage() {
                                 type="number"
                                 value={settings.linkedIncentive ?? 0}
                                 onChange={(e) => setSettings(prev => ({ ...prev, linkedIncentive: parseInt(e.target.value) || 0 }))}
-                                className="w-full bg-gray-900 border border-gray-800 rounded-xl px-4 py-2.5 text-white text-base focus:outline-none focus:border-blue-500/50"
+                                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white text-base focus:outline-none focus:border-blue-500/50"
                                 placeholder="예: 15"
                             />
                         </div>
@@ -211,7 +211,7 @@ export default function SettingsPage() {
                                 type="number"
                                 value={settings.soloIncentive ?? 0}
                                 onChange={(e) => setSettings(prev => ({ ...prev, soloIncentive: parseInt(e.target.value) || 0 }))}
-                                className="w-full bg-gray-900 border border-gray-800 rounded-xl px-4 py-2.5 text-white text-base focus:outline-none focus:border-blue-500/50"
+                                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white text-base focus:outline-none focus:border-blue-500/50"
                                 placeholder="예: 10"
                             />
                         </div>
@@ -220,8 +220,8 @@ export default function SettingsPage() {
             </div>
 
             {/* Rest Days Of Week */}
-            <div className="mt-8 pt-8 border-t border-gray-800">
-                    <h3 className="text-base font-bold text-gray-200 mb-2">정기 쉬는 요일</h3>
+            <div className="mt-8 bg-slate-900/50 border border-slate-800 p-6 rounded-2xl">
+                    <h3 className="text-base font-bold text-slate-200 mb-2 uppercase tracking-widest text-xs">정기 쉬는 요일</h3>
                     <p className="text-xs text-gray-500 mb-4 bg-gray-900/50 p-3 rounded-xl border border-gray-800 leading-relaxed">
                         선택된 요일은 통계 달력에 자동 휴무 표시됩니다. 다중 선택이 가능합니다.
                     </p>
@@ -233,8 +233,8 @@ export default function SettingsPage() {
                                     key={label}
                                     onClick={() => handleRestDayToggle(idx)}
                                     className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold transition-all duration-200 active:scale-90 ${isSelected
-                                        ? "bg-red-500/20 text-red-400 border border-red-500/30 shadow-inner"
-                                        : "bg-gray-900 text-gray-500 border border-gray-800 hover:bg-gray-800"
+                                        ? "bg-red-600 text-white shadow-lg"
+                                        : "bg-slate-950/50 text-slate-500 border border-slate-800"
                                         }`}
                                 >
                                     {label}
@@ -245,8 +245,8 @@ export default function SettingsPage() {
                 </div>
 
                 {/* Settlement Settings */}
-                <div className="mt-8 pt-8 border-t border-gray-800">
-                    <h3 className="text-base font-bold text-gray-200 mb-3">정산 및 급여 주기</h3>
+                <div className="mt-8 bg-slate-900/50 border border-slate-800 p-6 rounded-2xl">
+                    <h3 className="text-base font-bold text-slate-200 mb-4 uppercase tracking-widest text-xs">정산 및 급여 주기</h3>
                     <div className="grid grid-cols-2 gap-4">
                         <div>
                             <label className="text-xs text-gray-500 block mb-1.5">정산 시작일</label>
@@ -257,7 +257,7 @@ export default function SettingsPage() {
                                     max="31"
                                     value={settings.settlementDay}
                                     onChange={(e) => setSettings(prev => ({ ...prev, settlementDay: parseInt(e.target.value) || 25 }))}
-                                    className="w-full bg-gray-900 border border-gray-800 rounded-xl px-4 py-2.5 text-white text-base focus:outline-none focus:border-blue-500/50"
+                                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white text-base focus:outline-none focus:border-blue-500/50"
                                 />
                                 <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 text-sm">일</span>
                             </div>
@@ -271,7 +271,7 @@ export default function SettingsPage() {
                                     max="31"
                                     value={settings.payDay}
                                     onChange={(e) => setSettings(prev => ({ ...prev, payDay: parseInt(e.target.value) || 20 }))}
-                                    className="w-full bg-gray-900 border border-gray-800 rounded-xl px-4 py-2.5 text-white text-base focus:outline-none focus:border-blue-500/50"
+                                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white text-base focus:outline-none focus:border-blue-500/50"
                                 />
                                 <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 text-sm">일</span>
                             </div>

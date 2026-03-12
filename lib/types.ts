@@ -42,6 +42,31 @@ export interface Settings {
     useSoloIncentive?: boolean;
 }
 
+export interface DailyBreakdown {
+    date: string;
+    count: number;
+    baseRevenue: number;
+    incentive: number;
+    total: number;
+}
+
+export interface SettlementZoneSummary {
+    zoneName: string;
+    basePrice: number;
+    incentivePerUnit: number;
+    totalPrice: number;
+    totalCount: number;
+    subtotal: number;
+}
+
+export interface SettlementBreakdown {
+    totalamount: number;
+    baseTotal: number;
+    incentiveTotal: number;
+    days: DailyBreakdown[];
+    zoneSummaries: SettlementZoneSummary[];
+}
+
 export const WORK_TYPE_LABELS: Record<WorkType, string> = {
     "5day": "주5일",
     "6day": "주6일",

@@ -1,4 +1,5 @@
 "use client";
+import { useState } from "react";
 import { Delivery, Settings } from "@/lib/types";
 import {
     calcDailyRevenue,
@@ -7,6 +8,7 @@ import {
     formatWon,
     formatNumber,
 } from "@/lib/calculations";
+import SettlementModal from "./SettlementModal";
 
 interface DashboardProps {
     deliveries: Delivery[];
@@ -21,6 +23,7 @@ export default function Dashboard({
     todayTotal,
     onUpdateSettings,
 }: DashboardProps) {
+    const [isModalOpen, setIsModalOpen] = useState(false);
     const now = new Date();
     const year = now.getFullYear();
     const month = now.getMonth() + 1;
@@ -56,61 +59,87 @@ export default function Dashboard({
     };
 
     return (
-        <div className="mt-5 space-y-4">
+        <div className="mt-6 space-y-4">
             {/* Main: 오늘 매출 — prominent */}
-            <div id="guide-today-revenue" className="bg-gray-900/80 backdrop-blur-md border border-gray-800/60 rounded-2xl p-5 shadow-xl shadow-black/40 relative overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-transparent pointer-events-none" />
-                <p className="text-sm text-gray-400 font-medium relative">오늘 매출</p>
-                <p className="text-4xl font-extrabold mt-1 tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white via-gray-100 to-gray-400 relative">
-                    {todayTotal !== null ? formatWon(todayRevenue) : "₩0"}
-                </p>
-                <p className="text-sm text-gray-500 mt-2 relative font-medium">
-                    {todayTotal !== null && todayTotal > 0
-                        ? <span className="text-blue-400">{formatNumber(todayTotal)}건</span>
-                        : "배송 기록 없음"}
-                    {todayTotal !== null && todayTotal > 0 && " 배송"}
-                </p>
+            <div id="guide-today-revenue" className="bg-slate-900/50 border border-slate-800 rounded-2xl p-6 relative overflow-hidden">
+                <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">오늘 정산 매출</p>
+                <div className="flex items-baseline gap-2 mt-2">
+                    <p className="text-5xl font-black text-white tracking-tight">
+                        {todayTotal !== null ? formatWon(todayRevenue) : "₩0"}
+                    </p>
+                </div>
+                <div className="mt-4 flex items-center gap-2">
+                    <div className="h-2 w-2 rounded-full bg-blue-500 animate-pulse" />
+                    <p className="text-xs text-slate-400 font-medium">
+                        {todayTotal !== null && todayTotal > 0
+                            ? <span className="text-blue-400 font-bold">{formatNumber(todayTotal)}건</span>
+                            : "기록 대기 중"}
+                        <span className="ml-1 opacity-60">실적 반영됨</span>
+                    </p>
+                </div>
             </div>
 
             {/* Secondary: 2 reference cards */}
             <div className="grid grid-cols-2 gap-3">
                 {/* 일 평균 배송 */}
-                <div id="guide-daily-avg" className="bg-gray-900/80 backdrop-blur-md border border-gray-800/60 rounded-xl p-3.5 shadow-lg shadow-black/20">
-                    <p className="text-xs text-gray-400 font-medium">일 평균</p>
-                    <p className="text-xl font-bold text-gray-100 mt-1 tracking-tight">
+                <div id="guide-daily-avg" className="bg-slate-900/50 border border-slate-800 p-4 rounded-xl">
+                    <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">일 평균</p>
+                    <p className="text-2xl font-black text-slate-100 mt-1 tracking-tight">
                         {formatNumber(dailyAvg)}
-                        <span className="text-sm font-medium text-gray-500 ml-1">건</span>
+                        <span className="text-xs font-bold text-slate-500 ml-1">건</span>
                     </p>
                 </div>
 
                 {/* 예상 매출 */}
-                <div id="guide-monthly-prediction" className="bg-gray-900/80 backdrop-blur-md border border-gray-800/60 rounded-xl p-3.5 shadow-lg shadow-black/20">
-                    <p className="text-xs text-gray-400 font-medium">{month}월 예상매출</p>
-                    <p className="text-xl font-bold mt-1 truncate tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white via-indigo-100 to-indigo-300">
+                <div id="guide-monthly-prediction" className="bg-slate-900/50 border border-slate-800 p-4 rounded-xl">
+                    <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">{month}월 예상매출</p>
+                    <p className="text-2xl font-black text-slate-100 mt-1 truncate tracking-tight">
                         {formatWon(estimatedRevenue)}
                     </p>
                 </div>
             </div>
 
-            {/* Coupang Incentives */}
+            {/* Subtle: Scheduled Payment (Settlement Period based) */}
+            <div className="bg-slate-900/50 border border-slate-800 py-4 px-5 rounded-xl flex items-center justify-between group">
+                <div className="flex flex-col">
+                    <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider opacity-80">정산 예정 ({nextPayment.periodStart.slice(5)}~{nextPayment.periodEnd.slice(5)})</span>
+                    <span className="text-sm text-slate-300 font-bold mt-0.5">{nextPayment.paymentLabel}</span>
+                </div>
+                <div className="flex flex-col items-end">
+                    <span className="text-xl font-black text-blue-400">
+                        {formatWon(nextPayment.amount)}
+                    </span>
+                    <button 
+                        onClick={() => setIsModalOpen(true)}
+                        className="text-[10px] text-blue-500 font-bold hover:text-blue-400 transition-colors mt-1 uppercase tracking-wider flex items-center gap-1"
+                    >
+                        <span>내역 확인</span>
+                        <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M9 5l7 7-7 7" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            {/* Coupang Incentives - Positioned below Expected Payout card */}
             {settings.isCoupangMode && (
-                <div className="mx-1 flex gap-2">
+                <div className="flex gap-3">
                     <button
                         onClick={() => toggleIncentive('linked')}
-                        className={`flex-1 py-1.5 rounded-lg text-xs font-bold border transition-all ${
+                        className={`flex-1 py-3 rounded-xl text-[11px] font-black tracking-widest uppercase border transition-all duration-300 ${
                             settings.useLinkedIncentive
-                                ? "bg-blue-500/20 border-blue-500/50 text-blue-400 shadow-lg shadow-blue-500/10"
-                                : "bg-gray-900/40 border-gray-800/40 text-gray-500"
+                                ? "glass-card bg-blue-500/20 border-blue-500/50 text-blue-400 shadow-[0_0_15px_rgba(59,130,246,0.3)]"
+                                : "bg-white/5 border-white/5 text-slate-600 grayscale opacity-60"
                         }`}
                     >
                         연계 {settings.linkedIncentive && settings.linkedIncentive > 0 ? `(+${settings.linkedIncentive}원)` : ""}
                     </button>
                     <button
                         onClick={() => toggleIncentive('solo')}
-                        className={`flex-1 py-1.5 rounded-lg text-xs font-bold border transition-all ${
+                        className={`flex-1 py-3 rounded-xl text-[11px] font-black tracking-widest uppercase border transition-all duration-300 ${
                             settings.useSoloIncentive
-                                ? "bg-indigo-500/20 border-indigo-500/50 text-indigo-400 shadow-lg shadow-indigo-500/10"
-                                : "bg-gray-900/40 border-gray-800/40 text-gray-500"
+                                ? "glass-card bg-indigo-500/20 border-indigo-500/50 text-indigo-400 shadow-[0_0_15px_rgba(99,102,241,0.3)]"
+                                : "bg-white/5 border-white/5 text-slate-600 grayscale opacity-60"
                         }`}
                     >
                         단독 {settings.soloIncentive && settings.soloIncentive > 0 ? `(+${settings.soloIncentive}원)` : ""}
@@ -118,16 +147,15 @@ export default function Dashboard({
                 </div>
             )}
 
-            {/* Subtle: Scheduled Payment (Settlement Period based) */}
-            <div className="mx-1 px-4 py-2.5 bg-gray-900/40 border border-gray-800/40 rounded-xl flex items-center justify-between">
-                <div className="flex flex-col">
-                    <span className="text-[10px] text-gray-500 font-medium">정산 기간 ({nextPayment.periodStart.slice(5)}~{nextPayment.periodEnd.slice(5)})</span>
-                    <span className="text-xs text-gray-400 font-bold">{nextPayment.paymentLabel}</span>
-                </div>
-                <span className="text-sm font-extrabold text-blue-400/80">
-                    {formatWon(nextPayment.amount)}
-                </span>
-            </div>
+            {/* Settlement Modal */}
+            <SettlementModal 
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                breakdown={nextPayment.breakdown}
+                paymentLabel={nextPayment.paymentLabel}
+                periodStart={nextPayment.periodStart}
+                periodEnd={nextPayment.periodEnd}
+            />
         </div>
     );
 }
