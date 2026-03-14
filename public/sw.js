@@ -1,4 +1,4 @@
-const CACHE_NAME = 'courier-tracker-v4';
+const CACHE_NAME = 'courier-tracker-v5';
 
 self.addEventListener('install', (event) => {
     self.skipWaiting(); // 즉시 새 워커 활성화
