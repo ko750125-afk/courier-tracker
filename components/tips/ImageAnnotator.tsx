@@ -304,7 +304,21 @@ export default function ImageAnnotator({ src, onSave, onCancel }: ImageAnnotator
                         화살표
                     </button>
                     <button 
-                        onClick={() => { setActiveTool('text'); setSelectedId(null); }}
+                        onClick={() => { 
+                            const canvas = canvasRef.current;
+                            if (!canvas) return;
+                            const newId = Date.now().toString();
+                            // Default position: top-middle of the canvas
+                            setTextInput({ 
+                                show: true, 
+                                id: newId, 
+                                x: canvas.width / 2 - 50, 
+                                y: 50, 
+                                value: '' 
+                            });
+                            setActiveTool('text'); 
+                            setSelectedId(null); 
+                        }}
                         className={`flex items-center gap-2 px-4 py-2 rounded-xl font-black text-xs transition-all ${activeTool === 'text' ? 'bg-blue-600 text-white' : 'bg-white/5 text-gray-400'}`}
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor" className="w-4 h-4">
