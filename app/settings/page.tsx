@@ -19,6 +19,7 @@ export default function SettingsPage() {
     const [isMounted, setIsMounted] = useState(false);
     const [saving, setSaving] = useState(false);
     const [saved, setSaved] = useState(false);
+    const [isSharedIdFocused, setIsSharedIdFocused] = useState(false);
 
     // Track if settings changed through user interaction
     const isInitialMount = useRef(true);
@@ -375,8 +376,8 @@ export default function SettingsPage() {
                         autoComplete="off"
                         spellCheck="false"
                         placeholder="공유할 이름을 입력하세요 (예: kopo75)"
-                        className="w-full bg-gray-900 border border-gray-800 rounded-xl px-4 py-3
-                         text-white text-base focus:outline-none focus:border-blue-500/50"
+                        className="w-full bg-slate-950/50 border border-slate-800 rounded-xl px-4 py-3
+                         text-white text-base focus:outline-none focus:border-blue-500/50 transition-all duration-300"
                     />
                 </div>
             </div>

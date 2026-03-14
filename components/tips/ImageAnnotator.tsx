@@ -13,14 +13,16 @@ interface Annotation {
 
 interface ImageAnnotatorProps {
     src: string;
-    onSave: (dataUrl: string) => void;
+    initialAnnotations?: Annotation[];
+    onSave: (dataUrl: string, annotations: Annotation[]) => void;
     onCancel: () => void;
 }
 
-export default function ImageAnnotator({ src, onSave, onCancel }: ImageAnnotatorProps) {
+export default function ImageAnnotator({ src, initialAnnotations = [], onSave, onCancel }: ImageAnnotatorProps) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
+    const imageRef = useRef<HTMLImageElement | null>(null);
     const [activeTool, setActiveTool] = useState<'arrow' | 'text' | 'select'>('arrow');
-    const [annotations, setAnnotations] = useState<Annotation[]>([]);
+    const [annotations, setAnnotations] = useState<Annotation[]>(initialAnnotations);
     const [selectedId, setSelectedId] = useState<string | null>(null);
     
     // Dragging/Drawing state
@@ -46,6 +48,7 @@ export default function ImageAnnotator({ src, onSave, onCancel }: ImageAnnotator
             canvas.width = img.width * ratio;
             canvas.height = img.height * ratio;
             
+            imageRef.current = img;
             drawCanvas();
         };
     }, [src]);
@@ -55,16 +58,13 @@ export default function ImageAnnotator({ src, onSave, onCancel }: ImageAnnotator
     }, [annotations, selectedId]);
 
     const drawCanvas = () => {
-        const img = new Image();
-        img.src = src;
-        img.onload = () => {
-            const canvas = canvasRef.current;
-            if (!canvas) return;
-            const ctx = canvas.getContext('2d');
-            if (!ctx) return;
+        const canvas = canvasRef.current;
+        if (!canvas || !imageRef.current) return;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
 
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(imageRef.current, 0, 0, canvas.width, canvas.height);
 
             annotations.forEach(ann => {
                 const isSelected = ann.id === selectedId;
@@ -89,7 +89,6 @@ export default function ImageAnnotator({ src, onSave, onCancel }: ImageAnnotator
                 
                 ctx.shadowBlur = 0;
             });
-        };
     };
 
     const drawArrow = (ctx: CanvasRenderingContext2D, fromx: number, fromy: number, tox: number, toy: number, isSelected: boolean) => {
@@ -119,13 +118,14 @@ export default function ImageAnnotator({ src, onSave, onCancel }: ImageAnnotator
     const drawTextLabel = (ctx: CanvasRenderingContext2D, text: string, x: number, y: number, isSelected: boolean) => {
         ctx.font = 'bold 24px Inter, sans-serif';
         const metrics = ctx.measureText(text);
-        const padding = 10;
+        const paddingX = 14;
+        const paddingY = 8;
         const h = 36;
-        const w = metrics.width + padding * 2;
+        const w = metrics.width + paddingX * 2;
         
         ctx.fillStyle = isSelected ? 'rgba(37, 99, 235, 1)' : 'rgba(59, 130, 246, 0.9)';
         ctx.beginPath();
-        ctx.roundRect(x - padding, y - h + 6, w, h, 10);
+        ctx.roundRect(x - paddingX, y - h + 6, w, h, 12);
         ctx.fill();
         
         if (isSelected) {
@@ -174,12 +174,14 @@ export default function ImageAnnotator({ src, onSave, onCancel }: ImageAnnotator
             if (ann.type === 'text' && ann.text) {
                 ctx.font = 'bold 24px Inter, sans-serif';
                 const metrics = ctx.measureText(ann.text);
-                const padding = 10;
+                const paddingX = 14;
+                const paddingY = 8;
                 const h = 36;
-                const w = metrics.width + padding * 2;
+                const w = metrics.width + paddingX * 2;
                 
-                if (pos.x >= ann.x1 - padding && pos.x <= ann.x1 - padding + w &&
-                    pos.y >= ann.y1 - h + 6 && pos.y <= ann.y1 + 6) {
+                // hitbox is slightly larger for easier touch
+                if (pos.x >= ann.x1 - paddingX - 5 && pos.x <= ann.x1 + metrics.width + paddingX + 5 &&
+                    pos.y >= ann.y1 - h + 6 - 5 && pos.y <= ann.y1 + 6 + 5) {
                     return ann.id;
                 }
             } else if (ann.type === 'arrow' && ann.x2 !== undefined && ann.y2 !== undefined) {
@@ -282,36 +284,43 @@ export default function ImageAnnotator({ src, onSave, onCancel }: ImageAnnotator
         setDragOffset(null);
     };
 
+    const confirmText = () => {
+        if (textInput.value) {
+            const newAnn: Annotation = { 
+                id: textInput.id, 
+                type: 'text', 
+                x1: textInput.x + 10, 
+                y1: textInput.y + 24, 
+                text: textInput.value 
+            };
+            setAnnotations(prev => [...prev, newAnn]);
+            setSelectedId(textInput.id);
+            setActiveTool('select');
+        }
+        setTextInput(prev => ({ ...prev, show: false }));
+    };
+
     const handleSaveImage = () => {
         setSelectedId(null);
         setTimeout(() => {
             const canvas = canvasRef.current;
             if (!canvas) return;
-            onSave(canvas.toDataURL('image/jpeg', 0.8));
+            onSave(canvas.toDataURL('image/jpeg', 0.8), annotations);
         }, 50);
     };
 
     return (
         <div className="fixed inset-0 z-[250] bg-black/95 flex flex-col items-center justify-center p-4">
-            <div className="w-full max-w-lg mb-4 flex justify-between items-center bg-white/5 p-4 rounded-2xl border border-white/10 backdrop-blur-md">
-                <div className="flex gap-2">
-                    <button 
-                        onClick={() => { setActiveTool('select'); setSelectedId(null); }}
-                        className={`flex items-center gap-2 px-3 py-2 rounded-xl font-black text-xs transition-all ${activeTool === 'select' ? 'bg-blue-600 text-white' : 'bg-white/5 text-gray-400'}`}
-                    >
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor" className="w-4 h-4">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M15.042 21.672L13.684 16.6m0 0l-2.51 2.225.569-9.47 5.227 7.917-3.286-.672zm-7.518-.267A8.25 8.25 0 1120.25 10.5M8.288 14.212A5.25 5.25 0 1113.5 9" />
-                        </svg>
-                        이동
-                    </button>
+            <div className="w-full max-w-lg mb-4 bg-white/5 p-2 rounded-2xl border border-white/10 backdrop-blur-md overflow-hidden">
+                <div className="flex bg-slate-900/50 p-1 gap-1 overflow-x-auto scrollbar-hide rounded-xl mb-2">
                     <button 
                         onClick={() => { setActiveTool('arrow'); setSelectedId(null); }}
-                        className={`flex items-center gap-2 px-3 py-2 rounded-xl font-black text-xs transition-all ${activeTool === 'arrow' ? 'bg-blue-600 text-white' : 'bg-white/5 text-gray-400'}`}
+                        className={`flex flex-col items-center justify-center p-3 rounded-xl min-w-[70px] transition-all border-2 ${activeTool === 'arrow' ? 'bg-blue-600 border-blue-400 text-white shadow-lg' : 'bg-transparent border-transparent text-slate-400 hover:bg-slate-800'}`}
                     >
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor" className="w-4 h-4">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5 mb-1">
                             <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 19.5 15-15m0 0H8.25m11.25 0v11.25" />
                         </svg>
-                        화살표
+                        <span className="text-[10px] font-black uppercase">화살표</span>
                     </button>
                     <button 
                         onClick={() => { 
@@ -321,22 +330,42 @@ export default function ImageAnnotator({ src, onSave, onCancel }: ImageAnnotator
                             setTextInput({ 
                                 show: true, 
                                 id: newId, 
-                                x: canvas.width / 2 - 50, 
+                                x: canvas.width / 2 - 60, 
                                 y: 50, 
                                 value: '' 
                             });
                         }}
-                        className={`flex items-center gap-2 px-3 py-2 rounded-xl font-black text-xs transition-all bg-white/5 text-gray-400`}
+                        className={`flex flex-col items-center justify-center p-3 rounded-xl min-w-[70px] transition-all border-2 ${activeTool === 'text' ? 'bg-blue-600 border-blue-400 text-white shadow-lg' : 'bg-transparent border-transparent text-slate-400 hover:bg-slate-800'}`}
                     >
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor" className="w-4 h-4">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5 mb-1">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
                         </svg>
-                        텍스트
+                        <span className="text-[10px] font-black uppercase">글쓰기</span>
+                    </button>
+                    <button 
+                        onClick={() => { setActiveTool('select'); setSelectedId(null); }}
+                        className={`flex flex-col items-center justify-center p-3 rounded-xl min-w-[70px] transition-all border-2 ${activeTool === 'select' ? 'bg-blue-600 border-blue-400 text-white shadow-lg' : 'bg-transparent border-transparent text-slate-400 hover:bg-slate-800'}`}
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5 mb-1">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M15.042 21.672L13.684 16.6m0 0l-2.51 2.225.569-9.47 5.227 7.917-3.286-.672ZM12 2.25V4.5m5.834.166-1.591 1.591M20.25 10.5H18M18.757 17.243l-1.59 1.59" />
+                        </svg>
+                        <span className="text-[10px] font-black uppercase">이동/삭제</span>
                     </button>
                 </div>
+                
                 <div className="flex gap-2">
-                    <button onClick={onCancel} className="px-3 py-2 bg-white/5 text-white font-black rounded-xl text-xs">취소</button>
-                    <button onClick={handleSaveImage} className="px-3 py-2 bg-blue-600 text-white font-black rounded-xl text-xs shadow-lg shadow-blue-500/20">저장</button>
+                    <button 
+                        onClick={onCancel} 
+                        className="flex-1 px-4 py-3 bg-white/5 text-gray-400 font-black rounded-xl text-xs active:scale-95 transition-all"
+                    >
+                        취소
+                    </button>
+                    <button 
+                        onClick={handleSaveImage} 
+                        className="flex-[2] px-4 py-3 bg-blue-600 text-white font-black rounded-xl text-xs shadow-lg shadow-blue-500/20 active:scale-95 transition-all"
+                    >
+                        편집 내용 적용
+                    </button>
                 </div>
             </div>
 
@@ -354,32 +383,37 @@ export default function ImageAnnotator({ src, onSave, onCancel }: ImageAnnotator
                 
                 {textInput.show && (
                     <div 
-                        className="absolute z-10"
+                        className="absolute z-10 flex items-center gap-2"
                         style={{ left: textInput.x, top: textInput.y }}
                     >
                         <input 
                             autoFocus
-                            className="bg-blue-600 text-white font-bold p-2 px-4 rounded-xl border-2 border-white shadow-xl focus:outline-none text-sm pointer-events-auto"
+                            className="bg-blue-600 text-white font-bold p-2 px-4 rounded-xl border-2 border-white shadow-xl focus:outline-none text-sm pointer-events-auto min-w-[120px]"
                             onBlur={() => {
-                                if (textInput.value) {
-                                    setAnnotations(prev => [...prev, { 
-                                        id: textInput.id, 
-                                        type: 'text', 
-                                        x1: textInput.x + 10, 
-                                        y1: textInput.y + 24, 
-                                        text: textInput.value 
-                                    }]);
-                                    setSelectedId(textInput.id);
-                                    setActiveTool('select');
-                                }
-                                setTextInput({ ...textInput, show: false });
+                                // We use a small timeout to allow clicking the "Confirm" button
+                                setTimeout(() => {
+                                    if (textInput.show) {
+                                        confirmText();
+                                    }
+                                }, 150);
                             }}
                             onKeyDown={(e) => {
-                                if (e.key === 'Enter') e.currentTarget.blur();
-                                if (e.key === 'Escape') setTextInput({ ...textInput, show: false, value: '' });
+                                if (e.key === 'Enter') confirmText();
+                                if (e.key === 'Escape') setTextInput(prev => ({ ...prev, show: false, value: '' }));
                             }}
-                            onChange={(e) => setTextInput({ ...textInput, value: e.target.value })}
+                            onChange={(e) => setTextInput(prev => ({ ...prev, value: e.target.value }))}
                         />
+                        <button 
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                confirmText();
+                            }}
+                            className="bg-white text-blue-600 p-2 rounded-xl shadow-xl border-2 border-white active:scale-95 transition-all"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={4} stroke="currentColor" className="w-5 h-5">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                            </svg>
+                        </button>
                     </div>
                 )}
             </div>
@@ -387,10 +421,12 @@ export default function ImageAnnotator({ src, onSave, onCancel }: ImageAnnotator
             <div className="mt-6 flex flex-col items-center gap-3">
                 <div className="flex items-center gap-2 bg-white/5 px-4 py-2 rounded-full border border-white/5">
                     <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
-                    <p className="text-white/60 text-[10px] font-black uppercase tracking-widest">
-                        {activeTool === 'select' 
-                            ? (selectedId ? '선택된 항목을 드래그해서 위치를 옮기세요' : '이동할 항목을 터치하세요')
-                            : (activeTool === 'arrow' ? '사진을 드래그하여 화살표를 그리세요' : '텍스트를 입력하세요')}
+                    <p className="text-white/60 text-[10px] font-black uppercase tracking-widest text-center">
+                        {textInput.show 
+                            ? '입력 후 화면을 누르거나 Enter를 치면 텍스트가 고정됩니다'
+                            : activeTool === 'select' 
+                                ? (selectedId ? '선택된 항목을 드래그해서 위치를 옮기세요' : '이동할 항목을 터치하세요')
+                                : (activeTool === 'arrow' ? '사진을 드래그하여 화살표를 그리세요' : '텍스트를 입력하세요')}
                     </p>
                 </div>
                 

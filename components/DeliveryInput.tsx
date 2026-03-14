@@ -28,25 +28,24 @@ export default function DeliveryInput({
         }
     }, [initialValue]);
 
-    const handleFocus = () => {
-        if (value === "0") setValue("");
-    };
-
     const handleBlur = () => {
         if (value === "") setValue("0");
+        handleSave();
     };
 
     const handleSave = async () => {
-        const num = parseInt(value, 10);
+        const num = parseInt(value || "0", 10);
         if (isNaN(num) || num < 0) return;
         setSaving(true);
         try {
-            await onSave(num);
             play();
+            await onSave(num);
         } finally {
+
             setSaving(false);
         }
     };
+
 
     return (
         <div id="guide-input-section" className="bg-slate-900/50 border border-slate-800 p-6 rounded-2xl relative">
@@ -65,12 +64,11 @@ export default function DeliveryInput({
                     pattern="[0-9]*"
                     value={value}
                     onChange={(e) => setValue(e.target.value.replace(/[^0-9]/g, ""))}
-                    onFocus={handleFocus}
                     onBlur={handleBlur}
                     className="w-full text-center text-4xl font-black bg-slate-950/50
                        border border-slate-800 rounded-xl py-4 px-4 text-white
-                       placeholder-slate-700 focus:outline-none focus:border-blue-500/50
-                       transition-all duration-300"
+                       placeholder-slate-700 focus:outline-none 
+                       transition-all duration-300 focus:border-blue-500/50"
                     disabled={saving || loading}
                 />
             </div>
@@ -88,3 +86,4 @@ export default function DeliveryInput({
         </div>
     );
 }
+

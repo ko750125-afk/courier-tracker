@@ -34,6 +34,9 @@ export default function TipsPage() {
     const [editAddress, setEditAddress] = useState("");
     const [editContent, setEditContent] = useState("");
     const [editPhotos, setEditPhotos] = useState<string[]>([]);
+    
+    // Persistent Annotations & Original Images
+    const [photoData, setPhotoData] = useState<Record<string, { original: string, annotations: any[] }>>({});
 
     // --- Helpers ---
     const loadAppData = useCallback(async () => {
@@ -136,6 +139,11 @@ export default function TipsPage() {
             } else {
                 setEditPhotos(prev => [...prev, base64]);
             }
+            // Store original for re-editing
+            setPhotoData(prev => ({
+                ...prev,
+                [base64]: { original: base64, annotations: [] }
+            }));
         };
         reader.readAsDataURL(file);
     };
@@ -343,13 +351,27 @@ export default function TipsPage() {
             {fullscreenImage && (
                 <FullScreenImageViewer 
                     src={fullscreenImage} 
+                    originalSrc={photoData[fullscreenImage]?.original || fullscreenImage}
+                    initialAnnotations={photoData[fullscreenImage]?.annotations || []}
                     onClose={() => setFullscreenImage(null)} 
-                    onSave={(newUrl) => {
+                    onSave={(newUrl, annotations) => {
                         if (isAddModalOpen) {
                             setNewPhotos(prev => prev.map(p => p === fullscreenImage ? newUrl : p));
                         } else {
                             setEditPhotos(prev => prev.map(p => p === fullscreenImage ? newUrl : p));
                         }
+                        
+                        // Update photo data mapping
+                        setPhotoData(prev => {
+                            const next = { ...prev };
+                            const original = prev[fullscreenImage]?.original || fullscreenImage;
+                            // Clean up old key to prevent memory leak
+                            delete next[fullscreenImage];
+                            // Link new edited URL to original and annotations
+                            next[newUrl] = { original, annotations };
+                            return next;
+                        });
+                        
                         setFullscreenImage(newUrl);
                     }}
                 />

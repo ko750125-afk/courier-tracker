@@ -4,11 +4,13 @@ import ImageAnnotator from "./ImageAnnotator";
 
 interface FullScreenImageViewerProps {
     src: string;
+    originalSrc?: string;
+    initialAnnotations?: any[];
     onClose: () => void;
-    onSave?: (newSrc: string) => void;
+    onSave: (newUrl: string, annotations: any[]) => void;
 }
 
-export default function FullScreenImageViewer({ src, onClose, onSave }: FullScreenImageViewerProps) {
+export default function FullScreenImageViewer({ src, originalSrc, initialAnnotations, onClose, onSave }: FullScreenImageViewerProps) {
     const [scale, setScale] = useState(1);
     const [position, setPosition] = useState({ x: 0, y: 0 });
     const [isEditing, setIsEditing] = useState(false);
@@ -66,14 +68,12 @@ export default function FullScreenImageViewer({ src, onClose, onSave }: FullScre
                 onTouchEnd={handleTouchEnd}
             >
                 <div className="absolute top-6 right-6 z-10 flex gap-4">
-                    {onSave && (
-                        <button 
-                            onClick={() => setIsEditing(true)}
-                            className="w-12 h-12 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center text-white border border-white/20 active:scale-95 transition-all text-sm font-black"
-                        >
-                            편집
-                        </button>
-                    )}
+                    <button 
+                        onClick={() => setIsEditing(true)}
+                        className="w-12 h-12 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center text-white border border-white/20 active:scale-95 transition-all text-sm font-black"
+                    >
+                        편집
+                    </button>
                     <button 
                         onClick={onClose}
                         className="w-12 h-12 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center text-white border border-white/20 active:scale-95 transition-all text-xl"
@@ -104,10 +104,11 @@ export default function FullScreenImageViewer({ src, onClose, onSave }: FullScre
 
             {isEditing && (
                 <ImageAnnotator 
-                    src={src} 
+                    src={originalSrc || src} 
+                    initialAnnotations={initialAnnotations}
                     onCancel={() => setIsEditing(false)}
-                    onSave={(newUrl) => {
-                        onSave?.(newUrl);
+                    onSave={(newUrl, anns) => {
+                        onSave(newUrl, anns);
                         setIsEditing(false);
                     }}
                 />
