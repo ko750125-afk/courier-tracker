@@ -16,6 +16,7 @@ interface DashboardProps {
     todayTotal: number | null;
     onUpdateSettings?: (newSettings: Settings) => void;
 }
+import { useSound } from "@/lib/hooks/useSound";
 
 export default function Dashboard({
     deliveries,
@@ -24,6 +25,7 @@ export default function Dashboard({
     onUpdateSettings,
 }: DashboardProps) {
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const { play } = useSound(settings.useSoundEffects);
     const now = new Date();
     const year = now.getFullYear();
     const month = now.getMonth() + 1;
@@ -56,6 +58,7 @@ export default function Dashboard({
             newSettings.useSoloIncentive = !settings.useSoloIncentive;
         }
         onUpdateSettings(newSettings);
+        play();
     };
 
     return (
@@ -63,12 +66,12 @@ export default function Dashboard({
             {/* Main: 오늘 매출 — prominent */}
             <div id="guide-today-revenue" className="bg-slate-900/50 border border-slate-800 rounded-2xl p-6 relative overflow-hidden">
                 <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">오늘 정산 매출</p>
-                <div className="flex items-baseline gap-2 mt-2">
+                <div className="flex items-baseline gap-2 mt-2 select-none">
                     <p className="text-5xl font-black text-white tracking-tight">
                         {todayTotal !== null ? formatWon(todayRevenue) : "₩0"}
                     </p>
                 </div>
-                <div className="mt-4 flex items-center gap-2">
+                <div className="mt-4 flex items-center gap-2 select-none">
                     <div className="h-2 w-2 rounded-full bg-blue-500 animate-pulse" />
                     <p className="text-xs text-slate-400 font-medium">
                         {todayTotal !== null && todayTotal > 0
@@ -84,7 +87,7 @@ export default function Dashboard({
                 {/* 일 평균 배송 */}
                 <div id="guide-daily-avg" className="bg-slate-900/50 border border-slate-800 p-4 rounded-xl">
                     <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">일 평균</p>
-                    <p className="text-2xl font-black text-slate-100 mt-1 tracking-tight">
+                    <p className="text-xl font-black text-slate-100 mt-1 tracking-tight select-none">
                         {formatNumber(dailyAvg)}
                         <span className="text-xs font-bold text-slate-500 ml-1">건</span>
                     </p>
@@ -93,7 +96,7 @@ export default function Dashboard({
                 {/* 예상 매출 */}
                 <div id="guide-monthly-prediction" className="bg-slate-900/50 border border-slate-800 p-4 rounded-xl">
                     <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">{month}월 예상매출</p>
-                    <p className="text-2xl font-black text-slate-100 mt-1 truncate tracking-tight">
+                    <p className="text-xl font-black text-slate-100 mt-1 tracking-tight select-none">
                         {formatWon(estimatedRevenue)}
                     </p>
                 </div>
@@ -106,11 +109,14 @@ export default function Dashboard({
                     <span className="text-sm text-slate-300 font-bold mt-0.5">{nextPayment.paymentLabel}</span>
                 </div>
                 <div className="flex flex-col items-end">
-                    <span className="text-xl font-black text-blue-400">
+                    <span className="text-xl font-black text-blue-400 select-none">
                         {formatWon(nextPayment.amount)}
                     </span>
                     <button 
-                        onClick={() => setIsModalOpen(true)}
+                        onClick={() => {
+                            setIsModalOpen(true);
+                            play();
+                        }}
                         className="text-[10px] text-blue-500 font-bold hover:text-blue-400 transition-colors mt-1 uppercase tracking-wider flex items-center gap-1"
                     >
                         <span>내역 확인</span>

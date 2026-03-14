@@ -134,12 +134,12 @@ export default function MonthlyCalendar({
                             </span>
                             <div className="flex flex-col items-center justify-end h-full w-full">
                                 {hasDelivery && (
-                                    <span className={`text-[12px] font-black tracking-widest leading-none ${isRest ? 'text-gray-600 line-through' : 'text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.4)]'}`}>
+                                    <span className={`text-[12px] font-black tracking-widest leading-none select-none ${isRest ? 'text-gray-600 line-through' : 'text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.4)]'}`}>
                                         {formatNumber(delivery.total)}
                                     </span>
                                 )}
                                 {isRest && !hasDelivery && (
-                                    <span className="text-[9px] font-black text-red-500 leading-none mt-1 tracking-widest drop-shadow-[0_0_5px_rgba(239,68,68,0.4)]">
+                                    <span className="text-[9px] font-black text-red-500 leading-none mt-1 tracking-widest drop-shadow-[0_0_5px_rgba(239,68,68,0.4)] select-none">
                                         REST
                                     </span>
                                 )}

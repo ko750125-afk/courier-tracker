@@ -1,6 +1,9 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useSound } from "@/lib/hooks/useSound";
+import { loadSettings } from "@/lib/store";
 
 const tabs = [
     {
@@ -88,6 +91,12 @@ const tabs = [
 
 export default function BottomNav() {
     const pathname = usePathname();
+    const [soundEnabled, setSoundEnabled] = useState(false);
+    const { play } = useSound(soundEnabled);
+
+    useEffect(() => {
+        loadSettings().then(s => setSoundEnabled(!!s.useSoundEffects));
+    }, [pathname]); // Refresh on navigation just in case
 
     return (
         <nav className="fixed bottom-0 left-0 right-0 z-50 bg-slate-900/40 backdrop-blur-2xl border-t border-white/10 pb-[env(safe-area-inset-bottom)]">
@@ -99,6 +108,7 @@ export default function BottomNav() {
                             key={tab.href}
                             href={tab.href}
                             id={`guide-nav-${tab.href === "/" ? "home" : tab.href.replace("/", "")}`}
+                            onClick={() => play()}
                             className="relative flex flex-col items-center gap-1.5 min-w-[70px] px-1 py-1 rounded-2xl transition-all duration-500"
                         >
                             {/* Active background glow */}

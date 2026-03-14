@@ -1,21 +1,26 @@
 "use client";
 import { useState, useEffect } from "react";
+import { Settings } from "@/lib/types";
+import { useSound } from "@/lib/hooks/useSound";
 
 interface DeliveryInputProps {
     initialValue?: number;
     onSave: (total: number) => Promise<void>;
     loading?: boolean;
+    settings?: Settings;
 }
 
 export default function DeliveryInput({
     initialValue,
     onSave,
     loading,
+    settings,
 }: DeliveryInputProps) {
     const [value, setValue] = useState<string>(
         initialValue !== undefined ? String(initialValue) : "0"
     );
     const [saving, setSaving] = useState(false);
+    const { play } = useSound(settings?.useSoundEffects);
 
     useEffect(() => {
         if (initialValue !== undefined) {
@@ -37,6 +42,7 @@ export default function DeliveryInput({
         setSaving(true);
         try {
             await onSave(num);
+            play();
         } finally {
             setSaving(false);
         }

@@ -372,6 +372,8 @@ export default function SettingsPage() {
                                 sharedId: e.target.value || undefined,
                             }))
                         }
+                        autoComplete="off"
+                        spellCheck="false"
                         placeholder="공유할 이름을 입력하세요 (예: kopo75)"
                         className="w-full bg-gray-900 border border-gray-800 rounded-xl px-4 py-3
                          text-white text-base focus:outline-none focus:border-blue-500/50"
@@ -382,6 +384,28 @@ export default function SettingsPage() {
             {/* PWA Install */}
             <PWAInstaller />
 
+
+            {/* Sound Effects */}
+            <div className="mt-8 bg-slate-900/50 border border-slate-800 p-6 rounded-2xl">
+                <div className="flex items-center justify-between">
+                    <div className="flex flex-col gap-1">
+                        <h3 className="text-base font-bold text-slate-200 uppercase tracking-widest text-xs">버튼 사운드</h3>
+                        <p className="text-[10px] text-gray-500 italic">버튼 클릭 시 가벼운 효과음을 재생합니다.</p>
+                    </div>
+                    <button
+                        onClick={() => setSettings(prev => ({ ...prev, useSoundEffects: !prev.useSoundEffects }))}
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
+                            settings.useSoundEffects ? 'bg-blue-600' : 'bg-gray-700'
+                        }`}
+                    >
+                        <span
+                            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                                settings.useSoundEffects ? 'translate-x-6' : 'translate-x-1'
+                            }`}
+                        />
+                    </button>
+                </div>
+            </div>
 
             {/* App Info & Reset Guide */}
             <div className="mt-12 text-center space-y-4">

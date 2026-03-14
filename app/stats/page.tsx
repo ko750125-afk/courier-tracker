@@ -151,8 +151,7 @@ export default function StatsPage() {
                 })}
             </div>
 
-            {/* Monthly Summary */}
-            <div id="guide-stats-summary" className="grid grid-cols-2 gap-4">
+            <div id="guide-stats-summary" className="grid grid-cols-2 gap-4 select-none">
                 <div className="bg-slate-900/50 border border-slate-800 p-5 rounded-2xl">
                     <p className="text-[10px] uppercase tracking-wider text-slate-500 font-bold mb-1">월간 배송건수</p>
                     <div className="flex items-baseline gap-1">

@@ -94,6 +94,7 @@ export default function HomePage() {
           initialValue={todayDelivery?.total}
           onSave={handleSave}
           loading={loading}
+          settings={settings}
         />
       </div>
 

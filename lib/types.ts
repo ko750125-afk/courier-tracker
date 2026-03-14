@@ -40,6 +40,7 @@ export interface Settings {
     soloIncentive?: number;
     useLinkedIncentive?: boolean;
     useSoloIncentive?: boolean;
+    useSoundEffects?: boolean;
 }
 
 export interface DailyBreakdown {
@@ -93,6 +94,7 @@ export const DEFAULT_SETTINGS: Settings = {
     soloIncentive: 0,
     useLinkedIncentive: false,
     useSoloIncentive: false,
+    useSoundEffects: false,
 };
 
 export const TEST_DELIVERIES: Delivery[] = [
