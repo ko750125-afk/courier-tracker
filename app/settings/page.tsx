@@ -421,7 +421,7 @@ export default function SettingsPage() {
                     사용 가이드 다시보기
                 </button>
                 <div className="text-gray-700 text-[10px] space-y-1">
-                    <p className="font-medium">택배 정산 v1.2</p>
+                    <p className="font-medium">택배 정산 v1.3</p>
                     <p>클라우드 실시간 백업 및 자동 저장 활성화됨</p>
                 </div>
             </div>
