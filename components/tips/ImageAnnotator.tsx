@@ -19,7 +19,7 @@ interface ImageAnnotatorProps {
 
 export default function ImageAnnotator({ src, onSave, onCancel }: ImageAnnotatorProps) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
-    const [activeTool, setActiveTool] = useState<'arrow' | 'text'>('arrow');
+    const [activeTool, setActiveTool] = useState<'arrow' | 'text' | 'select'>('arrow');
     const [annotations, setAnnotations] = useState<Annotation[]>([]);
     const [selectedId, setSelectedId] = useState<string | null>(null);
     
@@ -169,7 +169,6 @@ export default function ImageAnnotator({ src, onSave, onCancel }: ImageAnnotator
         const ctx = canvas.getContext('2d');
         if (!ctx) return null;
 
-        // Check text first (labels are easier to target)
         for (let i = annotations.length - 1; i >= 0; i--) {
             const ann = annotations[i];
             if (ann.type === 'text' && ann.text) {
@@ -184,7 +183,6 @@ export default function ImageAnnotator({ src, onSave, onCancel }: ImageAnnotator
                     return ann.id;
                 }
             } else if (ann.type === 'arrow' && ann.x2 !== undefined && ann.y2 !== undefined) {
-                // Check distance to line segment
                 const dist = distToSegment(pos, { x: ann.x1, y: ann.y1 }, { x: ann.x2, y: ann.y2 });
                 if (dist < 15) return ann.id;
             }
@@ -201,28 +199,27 @@ export default function ImageAnnotator({ src, onSave, onCancel }: ImageAnnotator
     };
 
     const handleStart = (e: React.MouseEvent | React.TouchEvent) => {
+        if (textInput.show) return;
         const pos = getPos(e);
-        const hitId = hitTest(pos);
-
-        if (hitId) {
-            const ann = annotations.find(a => a.id === hitId);
-            if (ann) {
-                setSelectedId(hitId);
-                setInteractionMode('dragging');
-                setDragOffset({ x: pos.x - ann.x1, y: pos.y - ann.y1 });
-                setIsInteracting(true);
-                return;
+        
+        if (activeTool === 'select') {
+            const hitId = hitTest(pos);
+            if (hitId) {
+                const ann = annotations.find(a => a.id === hitId);
+                if (ann) {
+                    setSelectedId(hitId);
+                    setInteractionMode('dragging');
+                    setDragOffset({ x: pos.x - ann.x1, y: pos.y - ann.y1 });
+                    setIsInteracting(true);
+                    return;
+                }
             }
-        }
-
-        setSelectedId(null);
-        if (activeTool === 'arrow') {
+            setSelectedId(null);
+        } else if (activeTool === 'arrow') {
+            setSelectedId(null);
             setIsInteracting(true);
             setInteractionMode('drawing');
             setStartPos(pos);
-        } else if (activeTool === 'text') {
-            const newId = Date.now().toString();
-            setTextInput({ show: true, id: newId, x: pos.x, y: pos.y - 18, value: '' });
         }
     };
 
@@ -263,16 +260,20 @@ export default function ImageAnnotator({ src, onSave, onCancel }: ImageAnnotator
         
         if (interactionMode === 'drawing' && startPos && activeTool === 'arrow') {
             const pos = getPos(e);
-            const newAnn: Annotation = {
-                id: Date.now().toString(),
-                type: 'arrow',
-                x1: startPos.x,
-                y1: startPos.y,
-                x2: pos.x,
-                y2: pos.y
-            };
-            setAnnotations(prev => [...prev, newAnn]);
-            setSelectedId(newAnn.id);
+            if (Math.abs(pos.x - startPos.x) > 5 || Math.abs(pos.y - startPos.y) > 5) {
+                const newId = Date.now().toString();
+                const newAnn: Annotation = {
+                    id: newId,
+                    type: 'arrow',
+                    x1: startPos.x,
+                    y1: startPos.y,
+                    x2: pos.x,
+                    y2: pos.y
+                };
+                setAnnotations(prev => [...prev, newAnn]);
+                setSelectedId(newId);
+                setActiveTool('select'); // Auto switch to select mode to position it
+            }
         }
         
         setIsInteracting(false);
@@ -295,8 +296,17 @@ export default function ImageAnnotator({ src, onSave, onCancel }: ImageAnnotator
             <div className="w-full max-w-lg mb-4 flex justify-between items-center bg-white/5 p-4 rounded-2xl border border-white/10 backdrop-blur-md">
                 <div className="flex gap-2">
                     <button 
+                        onClick={() => { setActiveTool('select'); setSelectedId(null); }}
+                        className={`flex items-center gap-2 px-3 py-2 rounded-xl font-black text-xs transition-all ${activeTool === 'select' ? 'bg-blue-600 text-white' : 'bg-white/5 text-gray-400'}`}
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor" className="w-4 h-4">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M15.042 21.672L13.684 16.6m0 0l-2.51 2.225.569-9.47 5.227 7.917-3.286-.672zm-7.518-.267A8.25 8.25 0 1120.25 10.5M8.288 14.212A5.25 5.25 0 1113.5 9" />
+                        </svg>
+                        이동
+                    </button>
+                    <button 
                         onClick={() => { setActiveTool('arrow'); setSelectedId(null); }}
-                        className={`flex items-center gap-2 px-4 py-2 rounded-xl font-black text-xs transition-all ${activeTool === 'arrow' ? 'bg-blue-600 text-white' : 'bg-white/5 text-gray-400'}`}
+                        className={`flex items-center gap-2 px-3 py-2 rounded-xl font-black text-xs transition-all ${activeTool === 'arrow' ? 'bg-blue-600 text-white' : 'bg-white/5 text-gray-400'}`}
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor" className="w-4 h-4">
                             <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 19.5 15-15m0 0H8.25m11.25 0v11.25" />
@@ -308,7 +318,6 @@ export default function ImageAnnotator({ src, onSave, onCancel }: ImageAnnotator
                             const canvas = canvasRef.current;
                             if (!canvas) return;
                             const newId = Date.now().toString();
-                            // Default position: top-middle of the canvas
                             setTextInput({ 
                                 show: true, 
                                 id: newId, 
@@ -316,10 +325,8 @@ export default function ImageAnnotator({ src, onSave, onCancel }: ImageAnnotator
                                 y: 50, 
                                 value: '' 
                             });
-                            setActiveTool('text'); 
-                            setSelectedId(null); 
                         }}
-                        className={`flex items-center gap-2 px-4 py-2 rounded-xl font-black text-xs transition-all ${activeTool === 'text' ? 'bg-blue-600 text-white' : 'bg-white/5 text-gray-400'}`}
+                        className={`flex items-center gap-2 px-3 py-2 rounded-xl font-black text-xs transition-all bg-white/5 text-gray-400`}
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor" className="w-4 h-4">
                             <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
@@ -328,8 +335,8 @@ export default function ImageAnnotator({ src, onSave, onCancel }: ImageAnnotator
                     </button>
                 </div>
                 <div className="flex gap-2">
-                    <button onClick={onCancel} className="px-4 py-2 bg-white/5 text-white font-black rounded-xl text-xs">취소</button>
-                    <button onClick={handleSaveImage} className="px-4 py-2 bg-blue-600 text-white font-black rounded-xl text-xs shadow-lg shadow-blue-500/20">저장</button>
+                    <button onClick={onCancel} className="px-3 py-2 bg-white/5 text-white font-black rounded-xl text-xs">취소</button>
+                    <button onClick={handleSaveImage} className="px-3 py-2 bg-blue-600 text-white font-black rounded-xl text-xs shadow-lg shadow-blue-500/20">저장</button>
                 </div>
             </div>
 
@@ -362,6 +369,8 @@ export default function ImageAnnotator({ src, onSave, onCancel }: ImageAnnotator
                                         y1: textInput.y + 24, 
                                         text: textInput.value 
                                     }]);
+                                    setSelectedId(textInput.id);
+                                    setActiveTool('select');
                                 }
                                 setTextInput({ ...textInput, show: false });
                             }}
@@ -379,9 +388,9 @@ export default function ImageAnnotator({ src, onSave, onCancel }: ImageAnnotator
                 <div className="flex items-center gap-2 bg-white/5 px-4 py-2 rounded-full border border-white/5">
                     <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
                     <p className="text-white/60 text-[10px] font-black uppercase tracking-widest">
-                        {selectedId 
-                            ? '선택된 항목을 드래그해서 위치를 옮기세요' 
-                            : (activeTool === 'arrow' ? '사진을 드래그하여 화살표를 그리세요' : '사진을 터치하여 글자를 입력하세요')}
+                        {activeTool === 'select' 
+                            ? (selectedId ? '선택된 항목을 드래그해서 위치를 옮기세요' : '이동할 항목을 터치하세요')
+                            : (activeTool === 'arrow' ? '사진을 드래그하여 화살표를 그리세요' : '텍스트를 입력하세요')}
                     </p>
                 </div>
                 
@@ -392,6 +401,7 @@ export default function ImageAnnotator({ src, onSave, onCancel }: ImageAnnotator
                                 onClick={() => {
                                     setAnnotations(prev => prev.slice(0, -1));
                                     setSelectedId(null);
+                                    setActiveTool('arrow');
                                 }}
                                 className="text-blue-400 text-[10px] font-black uppercase tracking-widest border border-blue-500/20 px-4 py-2 rounded-full active:scale-95 bg-blue-500/5 transition-all"
                             >
@@ -401,6 +411,7 @@ export default function ImageAnnotator({ src, onSave, onCancel }: ImageAnnotator
                                 onClick={() => {
                                     setAnnotations([]);
                                     setSelectedId(null);
+                                    setActiveTool('arrow');
                                 }}
                                 className="text-red-400 text-[10px] font-black uppercase tracking-widest border border-red-500/20 px-4 py-2 rounded-full active:scale-95 bg-red-500/5 transition-all"
                             >
@@ -424,3 +435,4 @@ export default function ImageAnnotator({ src, onSave, onCancel }: ImageAnnotator
         </div>
     );
 }
+
