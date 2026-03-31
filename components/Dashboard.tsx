@@ -104,36 +104,47 @@ export default function Dashboard({
             </div>
 
             {/* Subtle: Scheduled Payment (Settlement Period based) */}
-            <div className="bg-slate-900/50 border border-slate-800 py-4 px-5 rounded-xl flex items-center justify-between group relative overflow-hidden">
-                <div className="flex flex-col">
-                    <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider opacity-80 flex items-center gap-2">
-                        <span className="w-1 h-2 bg-blue-500 rounded-full" />
-                        정산 예정 ({nextPayment.periodStart.slice(5)}~{nextPayment.periodEnd.slice(5)})
+            <div className="bg-slate-900/50 border border-slate-800 py-5 px-5 rounded-3xl flex items-center justify-between group relative overflow-hidden transition-all hover:bg-slate-800/60">
+                {/* Glow Effect */}
+                <div className="absolute -right-4 -top-4 w-24 h-24 bg-blue-500/10 blur-2xl rounded-full" />
+                
+                <div className="flex flex-col relative z-10">
+                    <span className="text-[10px] text-blue-500/80 font-black uppercase tracking-[0.15em] flex items-center gap-2 mb-1">
+                        <span className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse" />
+                        현재 정산 진행 중
                     </span>
-                    <span className="text-sm text-slate-300 font-bold mt-0.5">{nextPayment.paymentLabel}</span>
+                    <span className="text-xs text-slate-500 font-bold mb-1">
+                        ({nextPayment.periodStart.slice(5).replace('-', '.')} — {nextPayment.periodEnd.slice(5).replace('-', '.')})
+                    </span>
+                    <span className="text-sm text-slate-200 font-black tracking-tight">{nextPayment.paymentLabel}</span>
                     <Link 
                         href="/settlements" 
-                        className="text-[10px] text-slate-500 hover:text-blue-400 font-bold mt-2 transition-colors uppercase tracking-widest flex items-center gap-1.5"
+                        className="text-[10px] text-slate-500 hover:text-blue-400 font-bold mt-4 transition-colors uppercase tracking-[0.2em] flex items-center gap-1.5"
                     >
-                        전체 내역 보기
-                        <svg className="w-2 h-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        정산 히스토리
+                        <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={4} d="M9 5l7 7-7 7" />
                         </svg>
                     </Link>
                 </div>
-                <div className="flex flex-col items-end">
-                    <span className="text-xl font-black text-blue-400 select-none">
-                        {formatWon(nextPayment.amount)}
-                    </span>
+                <div className="flex flex-col items-end relative z-10">
+                    <div className="text-right mb-2">
+                        <span className="text-2xl font-black text-blue-400 tracking-tight block">
+                            {formatWon(nextPayment.amount)}
+                        </span>
+                        <span className="text-[11px] font-black text-slate-500 bg-slate-800/50 px-2 py-0.5 rounded-md mt-1 inline-block">
+                            총 {formatNumber(nextPayment.breakdown.totalCount)}건
+                        </span>
+                    </div>
                     <button 
                         onClick={() => {
                             setIsModalOpen(true);
                             play();
                         }}
-                        className="bg-blue-600/10 text-[10px] text-blue-400 font-black px-2.5 py-1.5 rounded-lg border border-blue-500/20 hover:bg-blue-600/20 hover:text-blue-300 transition-all mt-2 uppercase tracking-widest flex items-center gap-1"
+                        className="bg-blue-600/10 text-[10px] text-blue-400 font-black px-3 py-2 rounded-xl border border-blue-500/20 hover:bg-blue-600/20 hover:scale-105 transition-all uppercase tracking-widest flex items-center gap-1.5"
                     >
-                        내역 {nextPayment.breakdown.days.length}건
-                        <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        상세 내역
+                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M9 5l7 7-7 7" />
                         </svg>
                     </button>

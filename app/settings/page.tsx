@@ -253,12 +253,20 @@ export default function SettingsPage() {
                             <label className="text-xs text-gray-500 block mb-1.5">정산 시작일</label>
                             <div className="relative">
                                 <input
-                                    type="number"
-                                    min="1"
-                                    max="31"
-                                    value={settings.settlementDay}
-                                    onChange={(e) => setSettings(prev => ({ ...prev, settlementDay: parseInt(e.target.value) || 25 }))}
+                                    type="text"
+                                    inputMode="numeric"
+                                    value={settings.settlementDay || ""}
+                                    onChange={(e) => {
+                                        const val = e.target.value.replace(/[^0-9]/g, "");
+                                        setSettings(prev => ({ ...prev, settlementDay: val === "" ? 0 : parseInt(val) }));
+                                    }}
+                                    onBlur={() => {
+                                        if (!settings.settlementDay || settings.settlementDay < 1 || settings.settlementDay > 31) {
+                                            setSettings(prev => ({ ...prev, settlementDay: 25 }));
+                                        }
+                                    }}
                                     className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white text-base focus:outline-none focus:border-blue-500/50"
+                                    placeholder="25"
                                 />
                                 <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 text-sm">일</span>
                             </div>
@@ -267,12 +275,20 @@ export default function SettingsPage() {
                             <label className="text-xs text-gray-500 block mb-1.5">정산일 (월급날)</label>
                             <div className="relative">
                                 <input
-                                    type="number"
-                                    min="1"
-                                    max="31"
-                                    value={settings.payDay}
-                                    onChange={(e) => setSettings(prev => ({ ...prev, payDay: parseInt(e.target.value) || 20 }))}
+                                    type="text"
+                                    inputMode="numeric"
+                                    value={settings.payDay || ""}
+                                    onChange={(e) => {
+                                        const val = e.target.value.replace(/[^0-9]/g, "");
+                                        setSettings(prev => ({ ...prev, payDay: val === "" ? 0 : parseInt(val) }));
+                                    }}
+                                    onBlur={() => {
+                                        if (!settings.payDay || settings.payDay < 1 || settings.payDay > 31) {
+                                            setSettings(prev => ({ ...prev, payDay: 20 }));
+                                        }
+                                    }}
                                     className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white text-base focus:outline-none focus:border-blue-500/50"
+                                    placeholder="20"
                                 />
                                 <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 text-sm">일</span>
                             </div>
