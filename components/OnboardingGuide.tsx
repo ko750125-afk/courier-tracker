@@ -10,13 +10,8 @@ const STEPS = [
     },
     {
         title: "정확한 실적 분석",
-        description: "일간 실적과 월간 예상 매출을 한눈에 확인하세요. 이번 달 목표 수익까지 얼마나 남았는지 스마트하게 계산해 드립니다.",
+        description: "일간·월간 예상 수익을 한눈에 확인하세요. 정산일 기준으로 이번 달 예상 배송비도 자동 계산됩니다.",
         image: "/onboarding/step2.png",
-    },
-    {
-        title: "나만의 배송 족보",
-        description: "아파트 비번, 입구 위치 등 헷갈리는 정보는 사진과 함께 메모해두세요. 주소만 검색하면 바로 나옵니다.",
-        image: "/onboarding/step3.png",
     },
 ];
 
@@ -48,9 +43,18 @@ export default function OnboardingGuide() {
     if (!show) return null;
 
     return (
-        <div className="fixed inset-0 z-[200] bg-black/95 flex items-center justify-center p-6 backdrop-blur-md">
-            <div className="bg-gray-900 w-full max-w-sm rounded-[32px] overflow-hidden flex flex-col shadow-2xl animate-in fade-in zoom-in duration-300">
-                {/* Image Section */}
+        // 카카오톡 인앱 브라우저 호환: flex 대신 절대 위치 + margin auto
+        // flex items-center justify-center가 인앱 브라우저에서 뷰포트 오계산될 수 있어 대체
+        <div
+            className="fixed inset-0 z-[200] bg-black/95 backdrop-blur-md"
+            style={{ display: "flex", alignItems: "center", justifyContent: "center" }}
+        >
+            {/* 카드: 좌우 여백 24px씩, 중앙 정렬 보장 */}
+            <div
+                className="bg-gray-900 rounded-[32px] overflow-hidden flex flex-col shadow-2xl animate-in fade-in zoom-in duration-300"
+                style={{ width: "calc(100vw - 48px)", maxWidth: "384px" }}
+            >
+                {/* 이미지 영역 */}
                 <div className="relative aspect-[4/3] bg-gray-800">
                     <Image
                         src={STEPS[step].image}
@@ -61,15 +65,16 @@ export default function OnboardingGuide() {
                     <div className="absolute inset-0 bg-gradient-to-t from-gray-900 via-transparent to-transparent" />
                 </div>
 
-                {/* Content Section */}
+                {/* 텍스트 + 버튼 영역 */}
                 <div className="px-8 pb-8 flex flex-col items-center text-center -mt-4 relative z-10">
-                    {/* Indicators */}
+                    {/* 단계 인디케이터 */}
                     <div className="flex gap-1.5 mb-6">
                         {STEPS.map((_, i) => (
                             <div
                                 key={i}
-                                className={`h-1.5 rounded-full transition-all duration-300 ${step === i ? "w-6 bg-blue-500" : "w-1.5 bg-gray-700"
-                                    }`}
+                                className={`h-1.5 rounded-full transition-all duration-300 ${
+                                    step === i ? "w-6 bg-blue-500" : "w-1.5 bg-gray-700"
+                                }`}
                             />
                         ))}
                     </div>
@@ -83,8 +88,7 @@ export default function OnboardingGuide() {
 
                     <button
                         onClick={next}
-                        className="w-full py-4 bg-blue-600 text-white font-bold rounded-2xl shadow-lg
-                                   shadow-blue-600/20 active:scale-95 transition-all text-base"
+                        className="w-full py-4 bg-blue-600 text-white font-bold rounded-2xl shadow-lg shadow-blue-600/20 active:scale-95 transition-all text-base"
                     >
                         {step === STEPS.length - 1 ? "시작하기" : "다음"}
                     </button>

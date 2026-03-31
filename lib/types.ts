@@ -105,3 +105,10 @@ export const TEST_DELIVERIES: Delivery[] = [
     { date: "2026-03-04", total: 155 },
     { date: "2026-03-05", total: 160 },
 ];
+
+/**
+ * 정산 수령 확인 상태
+ * key: periodStart (예: "2026-03-25")
+ * value: true = 수령 완료
+ */
+export type ReceivedSettlementsMap = Record<string, boolean>;

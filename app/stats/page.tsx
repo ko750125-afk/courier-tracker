@@ -212,9 +212,9 @@ export default function StatsPage() {
                 </div>
             </div>
 
-            {/* Chart */}
+            {/* Chart — 선택된 월의 데이터만 전달하여 요일별 평균 계산 */}
             <div className="bg-slate-900/50 border border-slate-800 p-2 rounded-2xl overflow-hidden">
-                <ChartView deliveries={deliveries} />
+                <ChartView deliveries={monthDeliveries} selectedMonth={selectedMonth} />
             </div>
 
             <MonthlyCalendar

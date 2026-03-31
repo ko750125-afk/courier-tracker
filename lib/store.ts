@@ -1,10 +1,11 @@
-import { Settings, Delivery, DEFAULT_SETTINGS, TEST_DELIVERIES, DeliveryTip } from "./types";
+import { Settings, Delivery, DEFAULT_SETTINGS, TEST_DELIVERIES, DeliveryTip, ReceivedSettlementsMap } from "./types";
 import { getDatabase, getDeviceId } from "./firebase";
 import { doc, setDoc, getDoc, collection, getDocs, deleteDoc, writeBatch, Firestore } from "firebase/firestore";
 
 const STORAGE_KEY_SETTINGS = "courier-tracker-settings";
 const STORAGE_KEY_DELIVERIES = "courier-tracker-deliveries";
 const STORAGE_KEY_TIPS = "courier-tracker-tips";
+const STORAGE_KEY_RECEIVED = "courier-tracker-received"; // 정산 수령 확인 상태
 
 function isClient(): boolean {
     return typeof window !== "undefined";
@@ -285,5 +286,66 @@ async function seedTestDeliveries(): Promise<void> {
         // 시드 데이터는 로컬 스토리지에만 저장하고 클라우드에는 자동 업로드하지 않음
         // 사용자가 데이터를 추가하기 시작할 때 자연스럽게 업로드되도록 유도
         safeSet(STORAGE_KEY_DELIVERIES, JSON.stringify(TEST_DELIVERIES));
+    }
+}
+
+// ─────────────────────────────────────────────
+// 정산 수령 확인 기능
+// ─────────────────────────────────────────────
+
+/**
+ * 정산 수령 확인 상태를 불러옴
+ * 로컬 스토리지 → 없으면 클라우드에서 동기화
+ */
+export async function loadReceivedSettlements(): Promise<ReceivedSettlementsMap> {
+    const stored = safeGet(STORAGE_KEY_RECEIVED);
+    if (stored) {
+        try {
+            const parsed = JSON.parse(stored);
+            if (parsed && typeof parsed === "object") return parsed as ReceivedSettlementsMap;
+        } catch { }
+    }
+
+    // 클라우드에서 불러오기 시도
+    try {
+        const database = getDatabase();
+        const id = getTargetId();
+        const receivedDoc = await getDoc(doc(database, "users", id, "meta", "received_settlements"));
+        if (receivedDoc.exists()) {
+            const data = receivedDoc.data() as ReceivedSettlementsMap;
+            safeSet(STORAGE_KEY_RECEIVED, JSON.stringify(data));
+            return data;
+        }
+    } catch (e) {
+        console.warn("수령 확인 데이터 클라우드 로딩 실패:", e);
+    }
+
+    return {};
+}
+
+/**
+ * 특정 정산 기간의 수령 확인 상태를 저장
+ * @param periodStart 정산 시작일 (예: "2026-03-25")
+ * @param isReceived 수령 완료 여부
+ */
+export async function saveSettlementReceived(periodStart: string, isReceived: boolean): Promise<void> {
+    // 1. 현재 상태 로딩 후 업데이트
+    const current = await loadReceivedSettlements();
+    const updated: ReceivedSettlementsMap = { ...current, [periodStart]: isReceived };
+
+    // 2. 로컬 스토리지 즉시 저장
+    safeSet(STORAGE_KEY_RECEIVED, JSON.stringify(updated));
+
+    // 3. Firestore에도 저장 (meta 컬렉션에 단일 문서로 관리)
+    try {
+        const database = getDatabase();
+        const id = getTargetId();
+        await setDoc(
+            doc(database, "users", id, "meta", "received_settlements"),
+            updated,
+            { merge: false } // 전체 덮어쓰기
+        );
+    } catch (e) {
+        console.error("수령 확인 클라우드 저장 실패:", e);
     }
 }
