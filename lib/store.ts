@@ -53,11 +53,16 @@ function getTargetId(): string {
  * Sync from Cloud - can be forced when changing shared ID
  */
 export async function syncFromCloud(targetId?: string): Promise<{ settings?: Settings, deliveries?: Delivery[], tips?: DeliveryTip[] }> {
-    if (!db) return {};
+    if (!db) {
+        console.error("Firestore is not initialized (db is null)");
+        throw new Error("데이터베이스 연결 실패 (Firebase 설정 확인 필요)");
+    }
     const database = db as Firestore;
-    const id = targetId || getTargetId();
+    const id = (targetId || getTargetId()).trim();
+    if (!id) throw new Error("유효한 공유 ID가 없습니다.");
 
     try {
+        console.log(`📡 Cloud Sync Starting for ID: [${id}]`);
         const userDoc = await getDoc(doc(database, "users", id));
         let settings: Settings | undefined;
         let deliveries: Delivery[] | undefined;
@@ -83,10 +88,11 @@ export async function syncFromCloud(targetId?: string): Promise<{ settings?: Set
             safeSet(STORAGE_KEY_TIPS, JSON.stringify(tips));
         }
 
+        console.log(`✅ Sync Success: Found ${deliveries?.length || 0} deliveries, ${settings ? "with" : "no"} settings.`);
         return { settings, deliveries, tips };
-    } catch (e) {
-        console.warn("Cloud sync failed:", e);
-        return {};
+    } catch (e: any) {
+        console.error("❌ Cloud sync failed:", e);
+        throw e; // throw error to handle in UI
     }
 }
 

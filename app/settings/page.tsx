@@ -92,13 +92,15 @@ export default function SettingsPage() {
         setIsSyncing(true);
         try {
             const result = await syncFromCloud(settings.sharedId);
+            const deliveryCount = (result.deliveries || []).length;
+            
             if (result.settings) {
                 setSettings(result.settings);
             }
             setLastSyncTime(new Date().toLocaleTimeString());
-            alert("✅ 동기화 완료! 모바일의 최신 데이터를 성공적으로 불러왔습니다.");
-        } catch (e) {
-            alert("❌ 동기화 중 오류가 발생했습니다.");
+            alert(`✅ 동기화 완료! 모바일에서 ${deliveryCount}개의 기록을 성공적으로 가져왔습니다.`);
+        } catch (e: any) {
+            alert(`❌ 동기화 실패: ${e.message || "알 수 없는 오류가 발생했습니다."}\n공유 ID가 모바일과 일치하는지 다시 한번 확인해 주세요.`);
         } finally {
             setIsSyncing(false);
         }
