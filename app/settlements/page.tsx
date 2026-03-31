@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { Delivery, Settings, DEFAULT_SETTINGS } from "@/lib/types";
 import { loadSettings, loadDeliveries } from "@/lib/store";
-import { listRecentSettlements, formatWon } from "@/lib/calculations";
+import { listRecentSettlements, formatWon, formatNumber } from "@/lib/calculations";
 import SettlementModal from "@/components/SettlementModal";
 import Link from "next/link";
 
@@ -124,11 +124,16 @@ export default function SettlementsPage() {
                                 <p className={`text-2xl font-black tracking-tight ${idx === 0 ? "text-blue-400" : "text-slate-300"}`}>
                                     {formatWon(s.amount)}
                                 </p>
-                                <div className="flex items-center gap-1 justify-end text-slate-500 group-hover:text-blue-400 transition-colors">
-                                    <span className="text-[10px] font-black uppercase tracking-widest">내역 확인</span>
-                                    <svg className="w-3 h-3 translate-y-[0.5px] transition-transform group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M9 5l7 7-7 7" />
-                                    </svg>
+                                <div className="flex items-center gap-2 justify-end">
+                                    <span className="text-[11px] font-bold text-slate-400 bg-slate-800/80 px-2 py-0.5 rounded-md">
+                                        총 {formatNumber(s.breakdown.totalCount)}건
+                                    </span>
+                                    <div className="flex items-center gap-1 text-slate-500 group-hover:text-blue-400 transition-colors">
+                                        <span className="text-[10px] font-black uppercase tracking-widest">내역 확인</span>
+                                        <svg className="w-3 h-3 translate-y-[0.5px] transition-transform group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M9 5l7 7-7 7" />
+                                        </svg>
+                                    </div>
                                 </div>
                             </div>
                         </div>

@@ -121,9 +121,13 @@ export default function SettlementModal({
 
                 {/* Footer */}
                 <div className="p-6 bg-slate-950 border-t border-slate-800 rounded-b-2xl">
-                    <div className="flex justify-between items-center">
-                        <span className="text-xs text-slate-500 font-bold uppercase tracking-widest">최종 정산 합계</span>
-                        <div className="text-right">
+                    <div className="flex justify-between items-end">
+                        <div className="space-y-1">
+                            <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest block">총 배송 건수</span>
+                            <span className="text-xl font-black text-slate-400">{formatNumber(breakdown.totalCount)}건</span>
+                        </div>
+                        <div className="text-right space-y-1">
+                            <span className="text-[10px] text-blue-500 font-bold uppercase tracking-widest block">최종 정산 합계</span>
                             <span className="text-3xl font-black text-white tracking-tighter">
                                 {formatWon(breakdown.totalamount)}
                             </span>

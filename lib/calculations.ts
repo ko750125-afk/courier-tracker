@@ -255,12 +255,14 @@ export function getSettlementByDate(
 
     const baseTotal = dailyBreakdowns.reduce((s, bd) => s + bd.baseRevenue, 0);
     const incentiveTotal = dailyBreakdowns.reduce((s, bd) => s + bd.incentive, 0);
+    const totalCount = dailyBreakdowns.reduce((s, bd) => s + bd.count, 0);
     const amount = baseTotal + incentiveTotal;
 
     const breakdown: SettlementBreakdown = {
         totalamount: amount,
         baseTotal,
         incentiveTotal,
+        totalCount,
         days: dailyBreakdowns,
         zoneSummaries
     };

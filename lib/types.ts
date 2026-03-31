@@ -64,6 +64,7 @@ export interface SettlementBreakdown {
     totalamount: number;
     baseTotal: number;
     incentiveTotal: number;
+    totalCount: number;
     days: DailyBreakdown[];
     zoneSummaries: SettlementZoneSummary[];
 }
