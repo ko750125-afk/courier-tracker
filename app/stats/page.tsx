@@ -110,18 +110,31 @@ export default function StatsPage() {
         d && d.date && d.date.startsWith(selectedMonth)
     );
 
-    const months = [...new Set((deliveries || []).map((d) => (d.date || "").slice(0, 7)))].sort(
-        (a, b) => b.localeCompare(a)
-    );
-
-    // If current selected month is not in data, but data exists, ensure current month is still accessible
-    if (months.length > 0 && !months.includes(selectedMonth)) {
-        // Just adding it to the list if we want to show it even if empty
-        if (!months.includes(selectedMonth)) {
-            months.unshift(selectedMonth);
-            months.sort((a, b) => b.localeCompare(a));
+    // 엑셀 탭처럼 고정된 월 목록 생성 (최근 12개월 + 데이터가 있는 월)
+    const generateMonthList = () => {
+        const list = new Set<string>();
+        
+        // 1. 현재 달부터 과거 12개월 추가 (빈 달이라도 탭 유지)
+        const now = new Date();
+        for (let i = 0; i < 12; i++) {
+            const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+            const y = d.getFullYear();
+            const m = String(d.getMonth() + 1).padStart(2, "0");
+            list.add(`${y}-${m}`);
         }
-    }
+
+        // 2. 실제 데이터가 있는 월 추가 (12개월보다 더 과거 데이터가 있을 경우 대비)
+        (deliveries || []).forEach(d => {
+            if (d.date) list.add(d.date.slice(0, 7));
+        });
+
+        // 3. 현재 선택된 월도 반드시 포함
+        if (selectedMonth) list.add(selectedMonth);
+
+        return Array.from(list).sort((a, b) => b.localeCompare(a));
+    };
+
+    const months = generateMonthList();
 
     return (
         <div className="space-y-6">
