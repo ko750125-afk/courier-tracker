@@ -114,9 +114,9 @@ export default function StatsPage() {
     const generateMonthList = () => {
         const list = new Set<string>();
         
-        // 1. 현재 달 + 1(다음 달)부터 과거 12개월 추가
+        // 1. 현재 달 + 2(다음 다음 달)부터 과거 12개월 추가
         const now = new Date();
-        for (let i = -1; i < 11; i++) {
+        for (let i = -2; i < 10; i++) {
             const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
             const y = d.getFullYear();
             const m = String(d.getMonth() + 1).padStart(2, "0");
