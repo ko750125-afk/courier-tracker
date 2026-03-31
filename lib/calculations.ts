@@ -316,7 +316,13 @@ export function listRecentSettlements(
         }
     }
     
-    return results.sort((a, b) => b.periodStart.localeCompare(a.periodStart));
+    // 최신순으로 정렬
+    const sorted = results.sort((a, b) => b.periodStart.localeCompare(a.periodStart));
+
+    // 대표님 요청 반영: 
+    // 1. 첫 번째 항목(현재 진행 중인 기간)은 무의미해도 보여줌
+    // 2. 단, 두 번째 항목(과거)부터는 금액이 0원보다 큰(실적이 있는) 경우만 포함
+    return sorted.filter((s, idx) => idx === 0 || s.amount > 0);
 }
 
 
