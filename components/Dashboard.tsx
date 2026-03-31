@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import Link from "next/link";
 import { Delivery, Settings } from "@/lib/types";
 import {
     calcDailyRevenue,
@@ -9,6 +10,7 @@ import {
     formatNumber,
 } from "@/lib/calculations";
 import SettlementModal from "./SettlementModal";
+import { useSound } from "@/lib/hooks/useSound";
 
 interface DashboardProps {
     deliveries: Delivery[];
@@ -16,7 +18,6 @@ interface DashboardProps {
     todayTotal: number | null;
     onUpdateSettings?: (newSettings: Settings) => void;
 }
-import { useSound } from "@/lib/hooks/useSound";
 
 export default function Dashboard({
     deliveries,
@@ -103,10 +104,22 @@ export default function Dashboard({
             </div>
 
             {/* Subtle: Scheduled Payment (Settlement Period based) */}
-            <div className="bg-slate-900/50 border border-slate-800 py-4 px-5 rounded-xl flex items-center justify-between group">
+            <div className="bg-slate-900/50 border border-slate-800 py-4 px-5 rounded-xl flex items-center justify-between group relative overflow-hidden">
                 <div className="flex flex-col">
-                    <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider opacity-80">정산 예정 ({nextPayment.periodStart.slice(5)}~{nextPayment.periodEnd.slice(5)})</span>
+                    <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider opacity-80 flex items-center gap-2">
+                        <span className="w-1 h-2 bg-blue-500 rounded-full" />
+                        정산 예정 ({nextPayment.periodStart.slice(5)}~{nextPayment.periodEnd.slice(5)})
+                    </span>
                     <span className="text-sm text-slate-300 font-bold mt-0.5">{nextPayment.paymentLabel}</span>
+                    <Link 
+                        href="/settlements" 
+                        className="text-[10px] text-slate-500 hover:text-blue-400 font-bold mt-2 transition-colors uppercase tracking-widest flex items-center gap-1.5"
+                    >
+                        전체 내역 보기
+                        <svg className="w-2 h-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={4} d="M9 5l7 7-7 7" />
+                        </svg>
+                    </Link>
                 </div>
                 <div className="flex flex-col items-end">
                     <span className="text-xl font-black text-blue-400 select-none">
@@ -117,9 +130,9 @@ export default function Dashboard({
                             setIsModalOpen(true);
                             play();
                         }}
-                        className="text-[10px] text-blue-500 font-bold hover:text-blue-400 transition-colors mt-1 uppercase tracking-wider flex items-center gap-1"
+                        className="bg-blue-600/10 text-[10px] text-blue-400 font-black px-2.5 py-1.5 rounded-lg border border-blue-500/20 hover:bg-blue-600/20 hover:text-blue-300 transition-all mt-2 uppercase tracking-widest flex items-center gap-1"
                     >
-                        <span>내역 확인</span>
+                        내역 {nextPayment.breakdown.days.length}건
                         <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M9 5l7 7-7 7" />
                         </svg>

@@ -167,12 +167,12 @@ export function calcEstimatedEarnings(
 }
 
 /**
- * Calculate next payment amount
+ * Calculate settlement info for a specific date
  */
-export function calcNextPayment(
+export function getSettlementByDate(
     deliveries: Delivery[],
     zones: Zone[],
-    today: Date,
+    referenceDate: Date,
     settings: Settings
 ): { 
     amount: number; 
@@ -184,15 +184,15 @@ export function calcNextPayment(
 } {
     const settlementDay = settings.settlementDay || 25;
     const payDay = settings.payDay || 20;
-    const year = today.getFullYear();
-    const month = today.getMonth() + 1; // 1-indexed
-    const date = today.getDate();
+    const year = referenceDate.getFullYear();
+    const month = referenceDate.getMonth() + 1; // 1-indexed
+    const day = referenceDate.getDate();
 
     let pSYear, pSMonth, pSDay;
     let pEYear, pEMonth, pEDay;
     let payY, payM;
 
-    if (date < settlementDay) {
+    if (day < settlementDay) {
         const start = new Date(year, month - 2, settlementDay);
         pSYear = start.getFullYear(); pSMonth = start.getMonth() + 1; pSDay = settlementDay;
 
@@ -224,7 +224,6 @@ export function calcNextPayment(
         return bd;
     });
 
-    // Aggregate counts by zone for the entire period
     const zoneCountMap: Record<string, number> = {};
     periodDeliveries.forEach(d => {
         zones.forEach(zone => {
@@ -271,6 +270,53 @@ export function calcNextPayment(
 
     return { amount, paymentDate, paymentLabel, periodStart, periodEnd, breakdown };
 }
+
+/**
+ * Calculate next payment amount (Current logic wrapper)
+ */
+export function calcNextPayment(
+    deliveries: Delivery[],
+    zones: Zone[],
+    today: Date,
+    settings: Settings
+) {
+    return getSettlementByDate(deliveries, zones, today, settings);
+}
+
+/**
+ * List recent settlement periods for history
+ */
+export function listRecentSettlements(
+    deliveries: Delivery[],
+    zones: Zone[],
+    settings: Settings,
+    count: number = 12
+) {
+    const results: any[] = [];
+    const now = new Date();
+    
+    for (let i = 0; i < count; i++) {
+        // We check current date, and then go back month by month
+        const checkDate = new Date(now.getFullYear(), now.getMonth() - i, now.getDate());
+        const settlement = getSettlementByDate(deliveries, zones, checkDate, settings);
+        
+        if (!results.find(r => r.periodStart === settlement.periodStart)) {
+            results.push(settlement);
+        }
+
+        // If we are past settlement day, we also want the one immediately preceding it
+        if (i === 0 && checkDate.getDate() >= (settings.settlementDay || 25)) {
+            const prevDate = new Date(now.getFullYear(), now.getMonth(), (settings.settlementDay || 25) - 1);
+            const prevSettlement = getSettlementByDate(deliveries, zones, prevDate, settings);
+            if (!results.find(r => r.periodStart === prevSettlement.periodStart)) {
+                results.push(prevSettlement);
+            }
+        }
+    }
+    
+    return results.sort((a, b) => b.periodStart.localeCompare(a.periodStart));
+}
+
 
 /**
  * Calculate day-of-week averages

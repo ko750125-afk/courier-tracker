@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Delivery } from "@/lib/types";
 import { formatNumber } from "@/lib/calculations";
 
@@ -25,6 +25,16 @@ export default function MonthlyCalendar({
 }: MonthlyCalendarProps) {
     const [selectedDate, setSelectedDate] = useState<string | null>(null);
     const [editTotal, setEditTotal] = useState<string>("");
+    const panelRef = useRef<HTMLDivElement>(null);
+
+    // 선택된 날짜 패널로 자동 스크롤 (모바일 가시성 개선)
+    useEffect(() => {
+        if (selectedDate && panelRef.current) {
+            setTimeout(() => {
+                panelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }, 100);
+        }
+    }, [selectedDate]);
 
     if (!selectedMonth) return null;
 
@@ -162,34 +172,46 @@ export default function MonthlyCalendar({
 
             {/* Action Panel for Selected Date */}
             {selectedDate && (
-                <div className="mt-6 p-5 bg-white/5 border border-white/10 rounded-2xl animate-in zoom-in-95 fade-in duration-300 relative z-10 overflow-hidden shadow-2xl">
-                    <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-transparent pointer-events-none" />
-                    <div className="flex items-center justify-between mb-4 relative z-10">
-                        <span className="text-white font-black text-base tracking-tight">
-                            {(() => {
-                                const [y, m, d] = selectedDate.split("-");
-                                return `${y}년 ${m}월 ${d}일`;
-                            })()}
-                        </span>
-                        <button onClick={() => setSelectedDate(null)} className="text-gray-400 hover:text-white p-2 bg-white/5 rounded-full transition-colors">
+                <div 
+                    ref={panelRef}
+                    className="mt-6 p-6 bg-slate-900 border border-blue-500/30 rounded-3xl animate-in zoom-in-95 fade-in duration-300 relative z-10 overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.5)]"
+                >
+                    <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 via-transparent to-transparent pointer-events-none" />
+                    <div className="flex items-center justify-between mb-5 relative z-10">
+                        <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse shadow-[0_0_8px_rgba(59,130,246,0.6)]"></div>
+                            <span className="text-white font-black text-lg tracking-tight">
+                                {(() => {
+                                    const [y, m, d] = selectedDate.split("-");
+                                    return `${y}년 ${m}월 ${d}일 실적`;
+                                })()}
+                            </span>
+                        </div>
+                        <button onClick={() => setSelectedDate(null)} className="text-slate-400 hover:text-white p-2.5 bg-white/5 rounded-full transition-colors active:scale-90">
                             ✕
                         </button>
                     </div>
-                    <div className="flex gap-3 items-center mb-4 relative z-10">
-                        <input
-                            type="text"
-                            inputMode="numeric"
-                            value={editTotal}
-                            onChange={(e) => setEditTotal(e.target.value.replace(/[^0-9]/g, ""))}
-                            placeholder="배송 건수"
-                            className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-base font-bold focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 transition-all placeholder:text-gray-600"
-                        />
+                    <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center mb-5 relative z-10">
+                        <div className="relative flex-1">
+                            <input
+                                type="text"
+                                inputMode="numeric"
+                                value={editTotal}
+                                onChange={(e) => setEditTotal(e.target.value.replace(/[^0-9]/g, ""))}
+                                placeholder="배송 건수 입력"
+                                className="w-full bg-slate-950 border border-white/10 rounded-2xl px-5 py-4 text-white text-xl font-black focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 transition-all placeholder:text-slate-700 shadow-inner"
+                            />
+                            <div className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 font-bold text-sm">건</div>
+                        </div>
                         <button
                             onClick={handleSave}
                             disabled={!editTotal}
-                            className="bg-blue-600 hover:bg-blue-500 disabled:bg-gray-800 disabled:text-gray-600 text-white font-black py-3 px-6 rounded-xl transition-all active:scale-95 shadow-lg shadow-blue-500/25"
+                            className="bg-blue-600 hover:bg-blue-500 disabled:bg-slate-800 disabled:text-slate-600 text-white font-black py-4 px-10 rounded-2xl transition-all active:scale-95 shadow-xl shadow-blue-500/30 text-lg flex items-center justify-center gap-2"
                         >
-                            저장
+                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                            </svg>
+                            저장하기
                         </button>
                     </div>
                     <div className="grid grid-cols-2 gap-3 relative z-10">
@@ -198,14 +220,20 @@ export default function MonthlyCalendar({
                                 onToggleRestDate(selectedDate);
                                 setSelectedDate(null);
                             }}
-                            className="bg-white/5 hover:bg-white/10 text-gray-300 font-bold py-3.5 px-4 rounded-xl transition-all border border-white/5 text-sm active:scale-95"
+                            className="bg-white/5 hover:bg-white/10 text-slate-300 font-bold py-4 px-4 rounded-xl transition-all border border-white/5 text-sm active:scale-95 flex items-center justify-center gap-2"
                         >
+                            <svg className="w-4 h-4 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                            </svg>
                             휴무일 토글
                         </button>
                         <button
                             onClick={handleDelete}
-                            className="bg-red-500/10 hover:bg-red-500/20 text-red-400 font-bold py-3.5 px-4 rounded-xl transition-all border border-red-500/20 text-sm active:scale-95"
+                            className="bg-red-500/10 hover:bg-red-500/20 text-red-400 font-bold py-4 px-4 rounded-xl transition-all border border-red-500/20 text-sm active:scale-95 flex items-center justify-center gap-2"
                         >
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
                             내역 삭제
                         </button>
                     </div>
