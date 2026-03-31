@@ -9,6 +9,7 @@ import {
     calcDailyRevenue,
     formatWon,
     formatNumber,
+    listRecentSettlements,
 } from "@/lib/calculations";
 
 const ChartView = dynamic(() => import("@/components/ChartView"), {
@@ -73,7 +74,6 @@ export default function StatsPage() {
             await saveSettings(newSettings);
         } catch (err) {
             console.error("Failed to save rest date:", err);
-            // 에러 시 롤백 (생략 가능)
         }
     };
 
@@ -114,16 +114,16 @@ export default function StatsPage() {
     const generateMonthList = () => {
         const list = new Set<string>();
         
-        // 1. 현재 달부터 과거 12개월 추가 (빈 달이라도 탭 유지)
+        // 1. 현재 달 + 1(다음 달)부터 과거 12개월 추가
         const now = new Date();
-        for (let i = 0; i < 12; i++) {
+        for (let i = -1; i < 11; i++) {
             const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
             const y = d.getFullYear();
             const m = String(d.getMonth() + 1).padStart(2, "0");
             list.add(`${y}-${m}`);
         }
 
-        // 2. 실제 데이터가 있는 월 추가 (12개월보다 더 과거 데이터가 있을 경우 대비)
+        // 2. 실제 데이터가 있는 월 추가
         (deliveries || []).forEach(d => {
             if (d.date) list.add(d.date.slice(0, 7));
         });
@@ -164,9 +164,39 @@ export default function StatsPage() {
                 })}
             </div>
 
+            {/* Settlement Periods (Actual Payment View) */}
+            <div className="space-y-3">
+                <h2 className="text-lg font-bold text-slate-300 px-1">정산 내역 (수령일 기준)</h2>
+                <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
+                    {listRecentSettlements(deliveries, settings.zones, settings, 6).map((s, idx) => (
+                        <div key={idx} className="min-w-[280px] bg-slate-900 border border-slate-800 p-4 rounded-2xl flex-shrink-0">
+                            <div className="flex justify-between items-start mb-3">
+                                <div>
+                                    <p className="text-blue-400 font-black text-lg">{s.paymentLabel.replace(" 예상 수령액", "")}</p>
+                                    <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">{s.periodStart} ~ {s.periodEnd}</p>
+                                </div>
+                                <div className="bg-blue-600/20 text-blue-400 text-[10px] px-2 py-0.5 rounded-full font-bold">
+                                    {s.paymentDate} 지급
+                                </div>
+                            </div>
+                            <div className="flex justify-between items-end">
+                                <div>
+                                    <p className="text-xs text-slate-500 font-bold">합계 배송</p>
+                                    <p className="text-xl font-black text-white">{formatNumber(s.breakdown.totalCount)} <span className="text-xs text-slate-500">건</span></p>
+                                </div>
+                                <div className="text-right">
+                                    <p className="text-xs text-slate-500 font-bold">수령 예정액</p>
+                                    <p className="text-xl font-black text-white">{formatWon(s.amount)}</p>
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+
             <div id="guide-stats-summary" className="grid grid-cols-2 gap-4 select-none">
                 <div className="bg-slate-900/50 border border-slate-800 p-5 rounded-2xl">
-                    <p className="text-[10px] uppercase tracking-wider text-slate-500 font-bold mb-1">월간 배송건수</p>
+                    <p className="text-[10px] uppercase tracking-wider text-slate-500 font-bold mb-1">월간 배송건수 ({month}월)</p>
                     <div className="flex items-baseline gap-1">
                         <p className="text-3xl font-black text-white">
                             {formatNumber(totalDeliveries)}
@@ -175,7 +205,7 @@ export default function StatsPage() {
                     </div>
                 </div>
                 <div className="bg-slate-900/50 border border-slate-800 p-5 rounded-2xl">
-                    <p className="text-[10px] uppercase tracking-wider text-slate-500 font-bold mb-1">월간 합산수익</p>
+                    <p className="text-[10px] uppercase tracking-wider text-slate-500 font-bold mb-1">월간 합산수익 ({month}월)</p>
                     <p className="text-2xl font-black text-blue-400">
                         {formatWon(totalRevenue)}
                     </p>
@@ -186,6 +216,7 @@ export default function StatsPage() {
             <div className="bg-slate-900/50 border border-slate-800 p-2 rounded-2xl overflow-hidden">
                 <ChartView deliveries={deliveries} />
             </div>
+
             <MonthlyCalendar
                 selectedMonth={selectedMonth}
                 deliveries={monthDeliveries}
@@ -199,4 +230,3 @@ export default function StatsPage() {
         </div>
     );
 }
-
