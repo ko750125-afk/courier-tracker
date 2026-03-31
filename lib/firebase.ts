@@ -10,16 +10,33 @@ const firebaseConfig = {
     appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
-let app: FirebaseApp | undefined;
-let db: Firestore | undefined;
+let appInternal: FirebaseApp | undefined;
+let dbInternal: Firestore | undefined;
 
-// Defensive initialization
-if (typeof window !== "undefined" && firebaseConfig.apiKey) {
-    app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
-    db = getFirestore(app);
+export function getDatabase(): Firestore {
+    if (dbInternal) return dbInternal;
+
+    if (typeof window === "undefined") {
+        throw new Error("서버 환경입니다.");
+    }
+
+    if (!firebaseConfig.apiKey) {
+        throw new Error(`Firebase API Key가 누락되었습니다. Vercel 환경 변수를 확인해 주세요.`);
+    }
+
+    try {
+        appInternal = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+        dbInternal = getFirestore(appInternal);
+        return dbInternal;
+    } catch (e: any) {
+        throw new Error(`초기화 실패: ${e.message}`);
+    }
 }
 
-export { db };
+export const db: Firestore | undefined = (typeof window !== "undefined" && firebaseConfig.apiKey) 
+    ? getFirestore(getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0]) 
+    : undefined;
+
 
 export function getDeviceId(): string {
     if (typeof window === "undefined") return "server";
