@@ -102,14 +102,14 @@ export async function loadSettings(): Promise<Settings> {
     const { settings } = await syncFromCloud();
     if (settings) return settings;
 
-    // First run seed
-    await saveSettings(DEFAULT_SETTINGS);
+    // 클라우드에도 데이터가 없는 최초 실행 시에만 로컬 시드 생성
+    const defaultS = { ...DEFAULT_SETTINGS };
+    safeSet(STORAGE_KEY_SETTINGS, JSON.stringify(defaultS));
     await seedTestDeliveries();
-    return DEFAULT_SETTINGS;
+    return defaultS;
 }
 
 export async function saveSettings(settings: Settings): Promise<void> {
-    // If it's the first time setting a sharedId, we should pull cloud data for THAT id immediately
     const prevSettingsStr = safeGet(STORAGE_KEY_SETTINGS);
     const prevSettings = prevSettingsStr ? JSON.parse(prevSettingsStr) as Settings : null;
 
@@ -119,22 +119,32 @@ export async function saveSettings(settings: Settings): Promise<void> {
         const database = db as Firestore;
         try {
             const id = settings.sharedId || getDeviceId();
-
-            // If ID changed, sync THIS device's data TO the new ID for the first time
-            // Or if the new ID already has data, sync FROM it next time.
-            await setDoc(doc(database, "users", id), { settings }, { merge: true });
-
-            // If user just ADDED a sharedId, let's also migration current local deliveries TO the cloud under that ID
+            
+            // 공유 ID가 새로 설정되었거나 변경된 경우
             if (settings.sharedId && (!prevSettings || prevSettings.sharedId !== settings.sharedId)) {
-                const localDeliveries = await loadDeliveries();
-                if (localDeliveries.length > 0) {
-                    const batch = writeBatch(database);
-                    localDeliveries.forEach(d => {
-                        const ref = doc(database, "users", settings.sharedId!, "deliveries", d.date);
-                        batch.set(ref, { total: d.total });
-                    });
-                    await batch.commit();
+                // 1. 먼저 해당 공유 ID에 클라우드 데이터가 있는지 확인 (모바일 데이터 보호)
+                const cloudData = await syncFromCloud(settings.sharedId);
+                
+                if (!cloudData.deliveries || cloudData.deliveries.length === 0) {
+                    // 클라우드가 비어있을 때만 현재 로컬 데이터를 클라우드에 업로드 (마이그레이션)
+                    const localDeliveries = await loadDeliveries();
+                    if (localDeliveries.length > 0) {
+                        const batch = writeBatch(database);
+                        localDeliveries.forEach(d => {
+                            const ref = doc(database, "users", settings.sharedId!, "deliveries", d.date);
+                            batch.set(ref, { total: d.total });
+                        });
+                        await batch.commit();
+                    }
+                } else {
+                    // 클라우드에 이미 데이터가 있다면 업로드하지 않고 클라우드 데이터를 로컬에 덮어씀 (동기화)
+                    if (cloudData.settings) {
+                        safeSet(STORAGE_KEY_SETTINGS, JSON.stringify(cloudData.settings));
+                    }
                 }
+            } else {
+                // 일반적인 설정 저장
+                await setDoc(doc(database, "users", id), { settings }, { merge: true });
             }
         } catch (e) {
             console.error("Cloud save failed:", e);
@@ -143,6 +153,17 @@ export async function saveSettings(settings: Settings): Promise<void> {
 }
 
 export async function loadDeliveries(): Promise<Delivery[]> {
+    const settingsStr = safeGet(STORAGE_KEY_SETTINGS);
+    const hasSharedId = settingsStr && JSON.parse(settingsStr).sharedId;
+    
+    // 공유 ID가 설정되어 있으면 항상 클라우드와 먼저 동기화를 시도함
+    if (hasSharedId) {
+        const { deliveries } = await syncFromCloud();
+        if (deliveries && deliveries.length > 0) {
+            return deliveries.sort((a, b) => b.date.localeCompare(a.date));
+        }
+    }
+
     const stored = safeGet(STORAGE_KEY_DELIVERIES);
     let localDeliveries: Delivery[] = [];
 
@@ -153,7 +174,7 @@ export async function loadDeliveries(): Promise<Delivery[]> {
         } catch { }
     }
 
-    if (localDeliveries.length === 0) {
+    if (localDeliveries.length === 0 && !hasSharedId) {
         const { deliveries } = await syncFromCloud();
         if (deliveries) return deliveries.sort((a, b) => b.date.localeCompare(a.date));
     }
@@ -260,18 +281,8 @@ export async function deleteTip(tipId: string): Promise<void> {
 async function seedTestDeliveries(): Promise<void> {
     const stored = safeGet(STORAGE_KEY_DELIVERIES);
     if (!stored) {
+        // 시드 데이터는 로컬 스토리지에만 저장하고 클라우드에는 자동 업로드하지 않음
+        // 사용자가 데이터를 추가하기 시작할 때 자연스럽게 업로드되도록 유도
         safeSet(STORAGE_KEY_DELIVERIES, JSON.stringify(TEST_DELIVERIES));
-        if (db) {
-            const database = db as Firestore;
-            try {
-                const id = getTargetId();
-                const batch = writeBatch(database);
-                TEST_DELIVERIES.forEach(d => {
-                    const ref = doc(database, "users", id, "deliveries", d.date);
-                    batch.set(ref, { total: d.total });
-                });
-                await batch.commit();
-            } catch { }
-        }
     }
 }
