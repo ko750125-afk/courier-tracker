@@ -74,6 +74,7 @@ export async function syncFromCloud(uid?: string, targetIdOverride?: string): Pr
             safeSet(STORAGE_KEY_SETTINGS, JSON.stringify(settings));
         }
 
+        const deliverySnap = await getDocs(collection(database, "users", id, "deliveries"));
         const cloudDeliveries = !deliverySnap.empty ? deliverySnap.docs.map(d => ({
             date: d.id,
             total: d.data().total || 0
