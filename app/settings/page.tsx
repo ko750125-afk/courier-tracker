@@ -3,15 +3,16 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import ZoneManager from "@/components/ZoneManager";
 import {
     Settings,
-    Zone,
-    WorkType,
-    WorkShift,
-    WORK_TYPE_LABELS,
     DEFAULT_SETTINGS,
 } from "@/lib/types";
 import { loadSettings, saveSettings, syncFromCloud, migrateFromDeviceToUser, subscribeToSettings } from "@/lib/store";
 import { useAuth } from "@/lib/contexts/AuthContext";
 import PWAInstaller from "@/components/PWAInstaller";
+import ProfileSection from "@/components/settings/ProfileSection";
+import WorkPatternSection from "@/components/settings/WorkPatternSection";
+import SettlementSection from "@/components/settings/SettlementSection";
+import CommissionSection from "@/components/settings/CommissionSection";
+import SyncSection from "@/components/settings/SyncSection";
 
 export default function SettingsPage() {
     const { user, loginWithGoogle, logout, loading: authLoading } = useAuth();
@@ -44,10 +45,8 @@ export default function SettingsPage() {
         setIsMounted(true);
         loadData();
 
-        // Subscribe to settings changes for real-time sync
         const unsubscribe = subscribeToSettings(user?.uid, (newSettings) => {
             setSettings(newSettings);
-            // Only update input if it's not currently being focused/edited to avoid jumping
             if (document.activeElement?.id !== "commission-rate-input") {
                 setCommissionRateInput(newSettings.commissionRate?.toString() || "");
             }
@@ -74,47 +73,44 @@ export default function SettingsPage() {
             } finally {
                 setSaving(false);
             }
-        }, 800); // Wait for 800ms of inactivity before saving
+        }, 800);
 
         return () => clearTimeout(timer);
     }, [settings, loading, user?.uid]);
 
-    const handleZonesChange = (zones: Zone[]) => {
-        setSettings((prev) => ({ ...prev, zones }));
-    };
-
-    const handleWorkTypeChange = (workType: WorkType) => {
-        setSettings((prev) => ({ ...prev, workType }));
+    const handleUpdate = (updates: Partial<Settings>) => {
+        setSettings(prev => ({ ...prev, ...updates }));
     };
 
     const handleRestDayToggle = (dayIndex: number) => {
-        setSettings((prev) => {
-            const current = prev.restDaysOfWeek || [];
-            let updated: number[];
-            if (current.includes(dayIndex)) {
-                updated = current.filter((d: number) => d !== dayIndex);
-            } else {
-                updated = [...current, dayIndex].sort((a, b) => b - a);
-            }
-            return { ...prev, restDaysOfWeek: updated };
-        });
+        const current = settings.restDaysOfWeek || [];
+        let updated: number[];
+        if (current.includes(dayIndex)) {
+            updated = current.filter((d: number) => d !== dayIndex);
+        } else {
+            updated = [...current, dayIndex].sort((a, b) => b - a);
+        }
+        handleUpdate({ restDaysOfWeek: updated });
+    };
+
+    const handleCommissionInputChange = (val: string) => {
+        setCommissionRateInput(val);
+        const parsed = parseFloat(val);
+        if (!isNaN(parsed) || val === "") {
+            handleUpdate({ commissionRate: val === "" ? 0 : parsed });
+        }
     };
 
     const handleManualSync = async () => {
         if (isSyncing || (!settings.sharedId && !user)) return;
-
         setIsSyncing(true);
         try {
             const result = await syncFromCloud(user?.uid, settings.sharedId);
-            const deliveryCount = (result.deliveries || []).length;
-            
-            if (result.settings) {
-                setSettings(result.settings);
-            }
+            if (result.settings) setSettings(result.settings);
             setLastSyncTime(new Date().toLocaleTimeString());
-            alert(`✅ 동기화 완료! 클라우드에서 ${deliveryCount}개의 기록을 성공적으로 가져왔습니다.`);
+            alert(`✅ 동기화 완료! 클라우드에서 ${(result.deliveries || []).length}개의 기록을 가져왔습니다.`);
         } catch (e: any) {
-            alert(`❌ 동기화 실패: ${e.message || "알 수 없는 오류가 발생했습니다."}\n인터넷 연결을 확인해 주세요.`);
+            alert(`❌ 동기화 실패: ${e.message || "알 수 없는 오류"}`);
         } finally {
             setIsSyncing(false);
         }
@@ -122,18 +118,15 @@ export default function SettingsPage() {
 
     const handleMigration = async () => {
         if (!user || isMigrating) return;
-        
-        if (!confirm("지금 현재 기기에 저장된 모든 기록을 구글 계정으로 옮기시겠습니까?\n이후에는 로그인한 상태에서만 이 기록들을 볼 수 있습니다.")) {
-            return;
-        }
+        if (!confirm("현재 기기에 저장된 기록을 계정으로 옮기시겠습니까?")) return;
 
         setIsMigrating(true);
         try {
             await migrateFromDeviceToUser(user.uid);
-            alert("✅ 모든 데이터가 계정으로 이전되었습니다! 이제 다른 기기에서도 로그인만 하면 바로 볼 수 있어요.");
+            alert("✅ 모든 데이터가 계정으로 이전되었습니다!");
             loadData();
         } catch (e) {
-            alert("❌ 데이터 이전 중 오류가 발생했습니다. 나중에 다시 시도해 주세요.");
+            alert("❌ 데이터 이전 중 오류가 발생했습니다.");
         } finally {
             setIsMigrating(false);
         }
@@ -148,7 +141,7 @@ export default function SettingsPage() {
     }
 
     return (
-        <div>
+        <div className="pb-20">
             <div className="flex items-center justify-between mb-6 px-1">
                 <h1 className="text-xl font-bold text-gray-100">설정</h1>
                 <div className="flex items-center gap-2">
@@ -162,332 +155,46 @@ export default function SettingsPage() {
                 </div>
             </div>
 
+            <ProfileSection 
+                user={user} 
+                loginWithGoogle={loginWithGoogle} 
+                logout={logout} 
+                handleMigration={handleMigration} 
+                isMigrating={isMigrating} 
+            />
 
-            {/* Login / Profile Card */}
-            <div className="mb-8 bg-gradient-to-br from-slate-900 to-slate-950 border border-slate-800 p-6 rounded-3xl shadow-xl relative overflow-hidden group">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-blue-600/10 blur-3xl -mr-10 -mt-10 group-hover:bg-blue-600/20 transition-all" />
-                
-                {user ? (
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                            {user.photoURL ? (
-                                <img src={user.photoURL} alt="Profile" className="w-12 h-12 rounded-full border-2 border-blue-500/50 shadow-lg" />
-                            ) : (
-                                <div className="w-12 h-12 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold text-lg">
-                                    {user.displayName?.charAt(0) || "U"}
-                                </div>
-                            )}
-                            <div>
-                                <h2 className="text-slate-100 font-bold mb-0.5">{user.displayName || "사용자"}</h2>
-                                <p className="text-slate-500 text-xs">{user.email}</p>
-                            </div>
-                        </div>
-                        <button 
-                            onClick={logout}
-                            className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold rounded-xl border border-slate-700 transition-all"
-                        >
-                            로그아웃
-                        </button>
-                    </div>
-                ) : (
-                    <div className="text-center py-2">
-                        <h2 className="text-slate-100 font-bold mb-2">데이터 클라우드 저장</h2>
-                        <p className="text-slate-500 text-xs mb-6 px-4">
-                            구글로 로그인하면 기기를 바꿔도 데이터가 안전하게 유지됩니다.
-                        </p>
-                        <button 
-                            onClick={loginWithGoogle}
-                            className="w-full py-4 bg-white text-slate-950 font-bold rounded-2xl flex items-center justify-center gap-3 active:scale-[0.98] transition-all hover:bg-slate-100 shadow-xl"
-                        >
-                            <svg className="w-5 h-5" viewBox="0 0 24 24">
-                                <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                                <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/>
-                                <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-                            </svg>
-                            구글로 시작하기
-                        </button>
-                    </div>
-                )}
+            <ZoneManager 
+                zones={settings.zones} 
+                onChange={(zones) => handleUpdate({ zones })} 
+            />
 
-                {/* Migration helper for logged in users with local data */}
-                {user && (
-                    <div className="mt-8 pt-6 border-t border-slate-800/50">
-                        <div className="flex items-center gap-3 mb-2">
-                            <span className="text-xs font-bold text-blue-400">데이터 연동 내역</span>
-                            <div className="h-px flex-1 bg-slate-800/50" />
-                        </div>
-                        <p className="text-[10px] text-slate-500 mb-4">
-                            로그인 전 이 기기에 저장된 기록이 있다면 계정으로 옮겨보세요.
-                        </p>
-                        <button 
-                            onClick={handleMigration}
-                            disabled={isMigrating}
-                            className={`w-full py-3 rounded-xl text-xs font-bold transition-all border ${
-                                isMigrating 
-                                    ? "bg-slate-900 text-slate-600 border-slate-800" 
-                                    : "bg-blue-600/10 text-blue-400 border-blue-500/20 hover:bg-blue-600/20 active:scale-[0.98]"
-                            }`}
-                        >
-                            {isMigrating ? "기록 옮기는 중..." : "지금 기기 기록을 계정으로 합치기"}
-                        </button>
-                    </div>
-                )}
-            </div>
+            <WorkPatternSection 
+                settings={settings} 
+                onUpdate={handleUpdate} 
+                handleRestDayToggle={handleRestDayToggle} 
+            />
 
+            <SettlementSection 
+                settings={settings} 
+                onUpdate={handleUpdate} 
+            />
 
-            {/* Zone Manager */}
-            <ZoneManager zones={settings.zones} onChange={handleZonesChange} />
+            <CommissionSection 
+                commissionRateInput={commissionRateInput} 
+                onInputChange={handleCommissionInputChange} 
+            />
 
-            {/* Work Pattern */}
-            <div id="guide-settings-worktype" className="mt-8 bg-slate-900/50 border border-slate-800 p-6 rounded-2xl">
-                <h3 className="text-base font-bold text-slate-200 mb-4 uppercase tracking-widest text-xs">근무 패턴</h3>
-                <div className="grid grid-cols-2 gap-2">
-                    {(Object.keys(WORK_TYPE_LABELS) as WorkType[]).map((type) => (
-                        <button
-                            key={type}
-                            onClick={() => handleWorkTypeChange(type)}
-                            className={`py-2.5 px-4 rounded-xl text-center text-sm font-medium transition-all ${settings.workType === type
-                                ? "bg-blue-600 text-white shadow-lg"
-                                : "bg-slate-950/50 text-slate-400 border border-slate-800"
-                                }`}
-                        >
-                            {WORK_TYPE_LABELS[type]}
-                        </button>
-                    ))}
-                </div>
+            <SyncSection 
+                settings={settings} 
+                onUpdate={handleUpdate} 
+                handleManualSync={handleManualSync} 
+                isSyncing={isSyncing} 
+                lastSyncTime={lastSyncTime} 
+            />
 
-                {settings.workType === "custom" && (
-                    <div className="mt-3">
-                        <label className="text-xs text-gray-500 block mb-1.5">
-                            월 근무일수
-                        </label>
-                        <input
-                            type="text"
-                            inputMode="numeric"
-                            value={settings.customWorkDays ?? ""}
-                            onChange={(e) =>
-                                setSettings((prev) => ({
-                                    ...prev,
-                                    customWorkDays: parseInt(e.target.value) || undefined,
-                                }))
-                            }
-                            placeholder="예: 20"
-                            className="w-full bg-gray-900 border border-gray-800 rounded-xl px-4 py-2.5
-                         text-white text-base focus:outline-none focus:border-blue-500/50"
-                        />
-                    </div>
-                )}
-            </div>
-
-            {/* Work Shift */}
-            <div className="mt-8 bg-slate-900/50 border border-slate-800 p-6 rounded-2xl">
-                <h3 className="text-base font-bold text-slate-200 mb-4 uppercase tracking-widest text-xs">근무 시간 (주간/야간)</h3>
-                <div className="grid grid-cols-2 gap-2">
-                    {(["day", "night"] as WorkShift[]).map((shift) => (
-                        <button
-                            key={shift}
-                            onClick={() => setSettings(prev => ({ ...prev, workShift: shift }))}
-                            className={`py-2.5 px-4 rounded-xl text-center text-sm font-medium transition-all ${settings.workShift === shift
-                                ? "bg-blue-600 text-white shadow-lg"
-                                : "bg-slate-950/50 text-slate-400 border border-slate-800"
-                                }`}
-                        >
-                            <div className="flex flex-col items-center gap-1">
-                                <span className="font-bold">{shift === "day" ? "주간 배송" : "야간 배송"}</span>
-                                <span className="text-[10px] opacity-70">{shift === "day" ? "당일 기록" : "전날 기록"}</span>
-                            </div>
-                        </button>
-                    ))}
-                </div>
-                <p className="mt-3 text-[10px] text-gray-500 leading-relaxed italic">
-                    * 야간 배송(밤 10시~다음날 오전)의 경우, 새벽에 입력한 실적이 배송을 시작한 전날 날짜로 자동 기록됩니다.
-                </p>
-            </div>
-
-
-            {/* Rest Days Of Week */}
-            <div className="mt-8 bg-slate-900/50 border border-slate-800 p-6 rounded-2xl">
-                    <h3 className="text-base font-bold text-slate-200 mb-2 uppercase tracking-widest text-xs">정기 쉬는 요일</h3>
-                    <p className="text-xs text-gray-500 mb-4 bg-gray-900/50 p-3 rounded-xl border border-gray-800 leading-relaxed">
-                        선택된 요일은 통계 달력에 자동 휴무 표시됩니다. 다중 선택이 가능합니다.
-                    </p>
-                    <div className="flex gap-2 justify-between">
-                        {["일", "월", "화", "수", "목", "금", "토"].map((label, idx) => {
-                            const isSelected = (settings.restDaysOfWeek || []).includes(idx);
-                            return (
-                                <button
-                                    key={label}
-                                    onClick={() => handleRestDayToggle(idx)}
-                                    className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold transition-all duration-200 active:scale-90 ${isSelected
-                                        ? "bg-red-600 text-white shadow-lg"
-                                        : "bg-slate-950/50 text-slate-500 border border-slate-800"
-                                        }`}
-                                >
-                                    {label}
-                                </button>
-                            );
-                        })}
-                    </div>
-                </div>
-
-                {/* Settlement Settings */}
-                <div className="mt-8 bg-slate-900/50 border border-slate-800 p-6 rounded-2xl">
-                    <h3 className="text-base font-bold text-slate-200 mb-4 uppercase tracking-widest text-xs">정산 및 급여 주기</h3>
-                    <div className="grid grid-cols-2 gap-4">
-                        <div>
-                            <label className="text-xs text-gray-500 block mb-1.5">정산 시작일</label>
-                            <div className="relative">
-                                <input
-                                    type="text"
-                                    inputMode="numeric"
-                                    value={settings.settlementDay || ""}
-                                    onChange={(e) => {
-                                        const val = e.target.value.replace(/[^0-9]/g, "");
-                                        setSettings(prev => ({ ...prev, settlementDay: val === "" ? 0 : parseInt(val) }));
-                                    }}
-                                    onBlur={() => {
-                                        if (!settings.settlementDay || settings.settlementDay < 1 || settings.settlementDay > 31) {
-                                            setSettings(prev => ({ ...prev, settlementDay: 25 }));
-                                        }
-                                    }}
-                                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white text-base focus:outline-none focus:border-blue-500/50"
-                                    placeholder="25"
-                                />
-                                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 text-sm">일</span>
-                            </div>
-                        </div>
-                        <div>
-                            <label className="text-xs text-gray-500 block mb-1.5">정산일 (월급날)</label>
-                            <div className="relative">
-                                <input
-                                    type="text"
-                                    inputMode="numeric"
-                                    value={settings.payDay || ""}
-                                    onChange={(e) => {
-                                        const val = e.target.value.replace(/[^0-9]/g, "");
-                                        setSettings(prev => ({ ...prev, payDay: val === "" ? 0 : parseInt(val) }));
-                                    }}
-                                    onBlur={() => {
-                                        if (!settings.payDay || settings.payDay < 1 || settings.payDay > 31) {
-                                            setSettings(prev => ({ ...prev, payDay: 20 }));
-                                        }
-                                    }}
-                                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white text-base focus:outline-none focus:border-blue-500/50"
-                                    placeholder="20"
-                                />
-                                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 text-sm">일</span>
-                            </div>
-                        </div>
-                    </div>
-                    <p className="mt-3 text-[10px] text-gray-600 leading-relaxed italic">
-                        * 예: 시작일 25일 시, [전월 25일 ~ 당월 24일] 성과가 정산됩니다.
-                    </p>
-                </div>
-
-                {/* Commission Settings */}
-                <div className="mt-8 bg-slate-900/50 border border-slate-800 p-6 rounded-2xl">
-                    <h3 className="text-base font-bold text-slate-200 mb-4 uppercase tracking-widest text-xs">회사 수수료율</h3>
-                    <div className="space-y-4">
-                        <div className="relative">
-                            <input
-                                type="text"
-                                id="commission-rate-input"
-                                inputMode="decimal"
-                                value={commissionRateInput}
-                                onChange={(e) => {
-                                    const val = e.target.value.replace(/[^0-9.]/g, "");
-                                    if (val.split('.').length > 2) return;
-                                    setCommissionRateInput(val);
-                                    
-                                    const parsed = parseFloat(val);
-                                    if (!isNaN(parsed) || val === "") {
-                                        setSettings(prev => ({ ...prev, commissionRate: val === "" ? 0 : parsed }));
-                                    }
-                                }}
-                                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white text-base focus:outline-none focus:border-blue-500/50"
-                            />
-                            <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 text-sm">%</span>
-                        </div>
-                        <p className="text-[10px] text-gray-600 leading-relaxed italic">
-                            * 배송 총 매출에서 위 설정된 비율만큼 공제한 금액이 최종 정산액에 반영됩니다.
-                        </p>
-                    </div>
-                </div>
-
-
-            {/* Shared ID */}
-            <div id="guide-settings-sharedid" className="mt-8 pt-8 border-t border-gray-800">
-                <div className="flex items-center gap-2 mb-3">
-                    <h3 className="text-base font-bold text-gray-200">데이터 공유 (2인 1조)</h3>
-                    <span className="px-2 py-0.5 bg-indigo-500/10 text-indigo-400 text-[10px] font-bold rounded-full border border-indigo-500/20">
-                        CLOUD
-                    </span>
-                </div>
-                <p className="text-xs text-gray-500 mb-4 leading-relaxed">
-                    동일한 '공유 ID'를 입력하면 다른 기기와 실시간으로 데이터를 공유할 수 있습니다.
-                    <br />
-                    <span className="text-blue-400 font-medium block mt-1">
-                        ✨ 모바일 기기의 데이터를 '원본'으로 사용하여 동기화됩니다.
-                    </span>
-                </p>
-                <div className="space-y-4">
-                    <input
-                        type="text"
-                        value={settings.sharedId ?? ""}
-                        onChange={(e) =>
-                            setSettings((prev) => ({
-                                ...prev,
-                                sharedId: e.target.value.trim() || undefined,
-                            }))
-                        }
-                        autoComplete="off"
-                        spellCheck="false"
-                        placeholder="공유할 이름을 입력하세요 (예: kopo75)"
-                        className="w-full bg-slate-950/50 border border-slate-800 rounded-xl px-4 py-3
-                         text-white text-base focus:outline-none focus:border-blue-500/50 transition-all duration-300"
-                    />
-
-                    {settings.sharedId && (
-                        <div className="space-y-2">
-                            <button
-                                onClick={handleManualSync}
-                                disabled={isSyncing}
-                                className={`w-full py-4 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2
-                                    ${isSyncing 
-                                        ? "bg-slate-800 text-slate-500 cursor-not-allowed" 
-                                        : "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg active:scale-[0.98] hover:shadow-blue-500/20"
-                                    }`}
-                            >
-                                {isSyncing ? (
-                                    <>
-                                        <div className="w-4 h-4 border-2 border-slate-500 border-t-transparent rounded-full animate-spin" />
-                                        <span>모바일 데이터 동기화 중...</span>
-                                    </>
-                                ) : (
-                                    <>
-                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                                        </svg>
-                                        <span>지금 동기화 (모바일 데이터 불러오기)</span>
-                                    </>
-                                )}
-                            </button>
-                            {lastSyncTime && (
-                                <p className="text-[10px] text-center text-gray-600">
-                                    마지막 동기화 시각: {lastSyncTime}
-                                </p>
-                            )}
-                        </div>
-                    )}
-                </div>
-            </div>
-
-            {/* PWA Install */}
             <PWAInstaller />
 
-
-            {/* Sound Effects */}
+            {/* Sound Switch */}
             <div className="mt-8 bg-slate-900/50 border border-slate-800 p-6 rounded-2xl">
                 <div className="flex items-center justify-between">
                     <div className="flex flex-col gap-1">
@@ -495,7 +202,7 @@ export default function SettingsPage() {
                         <p className="text-[10px] text-gray-500 italic">버튼 클릭 시 가벼운 효과음을 재생합니다.</p>
                     </div>
                     <button
-                        onClick={() => setSettings(prev => ({ ...prev, useSoundEffects: !prev.useSoundEffects }))}
+                        onClick={() => handleUpdate({ useSoundEffects: !settings.useSoundEffects })}
                         className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
                             settings.useSoundEffects ? 'bg-blue-600' : 'bg-gray-700'
                         }`}
@@ -509,7 +216,6 @@ export default function SettingsPage() {
                 </div>
             </div>
 
-            {/* App Info & Reset Guide */}
             <div className="mt-12 text-center space-y-4">
                 <button
                     onClick={() => {
@@ -523,7 +229,7 @@ export default function SettingsPage() {
                 </button>
                 <div className="text-gray-700 text-[10px] space-y-1">
                     <p className="font-medium">택배 정산 v1.3</p>
-                    <p>클라우드 실시간 백업 및 자동 저장 활성화됨</p>
+                    <p>클라우드 실시간 백업 활성화됨</p>
                 </div>
             </div>
         </div>

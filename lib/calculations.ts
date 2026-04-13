@@ -75,15 +75,19 @@ export function calcMonthlyStats(
     year: number,
     month: number,
     settings?: Settings
-): { totalDeliveries: number; totalRevenue: number } {
+): { totalDeliveries: number; totalRevenue: number; netRevenue: number } {
     const monthStr = `${year}-${String(month).padStart(2, "0")}`;
     const monthDeliveries = (deliveries || []).filter((d) => d && d.date && d.date.startsWith(monthStr));
     const totalDeliveries = monthDeliveries.reduce((s, d) => s + (d.total || 0), 0);
-    const totalRevenue = monthDeliveries.reduce(
+    const grossRevenue = monthDeliveries.reduce(
         (s, d) => s + calcDailyRevenue(d.total, zones, settings),
         0
     );
-    return { totalDeliveries, totalRevenue };
+
+    const commissionRate = settings?.commissionRate || 0;
+    const netRevenue = Math.round(grossRevenue * (1 - commissionRate / 100));
+
+    return { totalDeliveries, totalRevenue: grossRevenue, netRevenue };
 }
 
 /**
@@ -133,12 +137,17 @@ export function calcEstimatedEarnings(
     year: number,
     month: number,
     settings: Settings
-): { estimatedDeliveries: number; estimatedRevenue: number; dailyAvg: number } {
+): { 
+    estimatedDeliveries: number; 
+    estimatedRevenue: number; 
+    estimatedNetRevenue: number;
+    dailyAvg: number 
+} {
     const monthStr = `${year}-${String(month).padStart(2, "0")}`;
     const monthDeliveries = (deliveries || []).filter((d) => d && d.date && d.date.startsWith(monthStr));
 
     if (monthDeliveries.length === 0) {
-        return { estimatedDeliveries: 0, estimatedRevenue: 0, dailyAvg: 0 };
+        return { estimatedDeliveries: 0, estimatedRevenue: 0, estimatedNetRevenue: 0, dailyAvg: 0 };
     }
 
     const totalSoFar = monthDeliveries.reduce((s, d) => s + (d.total || 0), 0);
@@ -155,13 +164,17 @@ export function calcEstimatedEarnings(
 
     const monthlyStats = calcMonthlyStats(deliveries || [], zones || [], year, month, settings);
     const avgRevenuePerDelivery = totalSoFar > 0 ? monthlyStats.totalRevenue / totalSoFar : 0;
-    const betterEstimatedRevenue = Math.round(
+    const grossEstimatedRevenue = Math.round(
         avgRevenuePerDelivery * estimatedDeliveries
     );
 
+    const commissionRate = settings.commissionRate || 0;
+    const netEstimatedRevenue = Math.round(grossEstimatedRevenue * (1 - commissionRate / 100));
+
     return {
         estimatedDeliveries,
-        estimatedRevenue: betterEstimatedRevenue,
+        estimatedRevenue: grossEstimatedRevenue,
+        estimatedNetRevenue: netEstimatedRevenue,
         dailyAvg,
     };
 }

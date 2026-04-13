@@ -34,7 +34,7 @@ export default function Dashboard({
     const todayRevenue =
         todayTotal !== null ? calcDailyRevenue(todayTotal, settings.zones, settings) : 0;
 
-    const { estimatedRevenue, dailyAvg } = calcEstimatedEarnings(
+    const { estimatedNetRevenue, dailyAvg } = calcEstimatedEarnings(
         deliveries,
         settings.zones,
         settings.workType,
@@ -66,10 +66,10 @@ export default function Dashboard({
         <div className="mt-6 space-y-4">
             {/* Main: 오늘 매출 — prominent */}
             <div id="guide-today-revenue" className="bg-slate-900/50 border border-slate-800 rounded-2xl p-6 relative overflow-hidden">
-                <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">오늘 정산 매출</p>
+                <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">오늘 정산 수령액</p>
                 <div className="flex items-baseline gap-2 mt-2 select-none">
                     <p className="text-5xl font-black text-white tracking-tight">
-                        {todayTotal !== null ? formatWon(todayRevenue) : "₩0"}
+                        {todayTotal !== null ? formatWon(Math.round(todayRevenue * (1 - (settings.commissionRate || 0) / 100))) : "₩0"}
                     </p>
                 </div>
                 <div className="mt-4 flex items-center gap-2 select-none">
@@ -78,7 +78,7 @@ export default function Dashboard({
                         {todayTotal !== null && todayTotal > 0
                             ? <span className="text-blue-400 font-bold">{formatNumber(todayTotal)}건</span>
                             : "기록 대기 중"}
-                        <span className="ml-1 opacity-60">실적 반영됨</span>
+                        <span className="ml-1 opacity-60">수수료 제외됨</span>
                     </p>
                 </div>
             </div>
@@ -96,9 +96,9 @@ export default function Dashboard({
 
                 {/* 예상 매출 */}
                 <div id="guide-monthly-prediction" className="bg-slate-900/50 border border-slate-800 p-4 rounded-xl">
-                    <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">{month}월 예상매출</p>
+                    <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">{month}월 예상수령액</p>
                     <p className="text-xl font-black text-slate-100 mt-1 tracking-tight select-none">
-                        {formatWon(estimatedRevenue)}
+                        {formatWon(estimatedNetRevenue)}
                     </p>
                 </div>
             </div>

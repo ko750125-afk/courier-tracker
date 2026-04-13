@@ -103,7 +103,7 @@ export default function StatsPage() {
     };
 
     const [year, month] = selectedMonth.split("-").map(Number);
-    const { totalDeliveries, totalRevenue } = calcMonthlyStats(
+    const { totalDeliveries, totalRevenue, netRevenue } = calcMonthlyStats(
         deliveries,
         settings.zones,
         year,
@@ -210,9 +210,9 @@ export default function StatsPage() {
                     </div>
                 </div>
                 <div className="bg-slate-900/50 border border-slate-800 p-5 rounded-2xl">
-                    <p className="text-[10px] uppercase tracking-wider text-slate-500 font-bold mb-1">월간 합산수익 ({month}월)</p>
+                    <p className="text-[10px] uppercase tracking-wider text-slate-500 font-bold mb-1">월간 예상수령액 ({month}월)</p>
                     <p className="text-2xl font-black text-blue-400">
-                        {formatWon(totalRevenue)}
+                        {formatWon(netRevenue)}
                     </p>
                 </div>
             </div>
@@ -225,6 +225,7 @@ export default function StatsPage() {
             <MonthlyCalendar
                 selectedMonth={selectedMonth}
                 deliveries={monthDeliveries}
+                workShift={settings.workShift}
                 restDaysOfWeek={settings.restDaysOfWeek || [0]}
                 restDateOverrides={settings.restDateOverrides || {}}
                 onToggleRestDate={handleToggleRestDate}

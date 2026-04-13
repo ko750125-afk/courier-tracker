@@ -1,12 +1,13 @@
 "use client";
-
 import { useState, useRef, useEffect } from "react";
-import { Delivery } from "@/lib/types";
+import { getWorkingDate, formatDateStr } from "@/lib/utils";
 import { formatNumber } from "@/lib/calculations";
+import { Delivery } from "@/lib/types";
 
 interface MonthlyCalendarProps {
     selectedMonth: string; // YYYY-MM
     deliveries: Delivery[];
+    workShift?: "day" | "night"; // 추가
     restDaysOfWeek: number[]; // 0~6
     restDateOverrides: Record<string, boolean>; // YYYY-MM-DD -> true(쉬는날)/false(일하는날)
     onToggleRestDate: (dateStr: string) => void;
@@ -17,6 +18,7 @@ interface MonthlyCalendarProps {
 export default function MonthlyCalendar({
     selectedMonth,
     deliveries,
+    workShift = "day",
     restDaysOfWeek,
     restDateOverrides,
     onToggleRestDate,
@@ -43,11 +45,9 @@ export default function MonthlyCalendar({
     const startDayOfWeek = startDate.getDay(); // 0(Sun) ~ 6(Sat)
     const daysInMonth = new Date(year, month, 0).getDate();
 
-    // 오늘 날짜 계산
-    const todayDate = new Date();
-    const todayYear = todayDate.getFullYear();
-    const todayMonth = todayDate.getMonth() + 1;
-    const todayDay = todayDate.getDate();
+    // 오늘 날짜 계산 (근무 시간대 반영)
+    const workingDate = getWorkingDate(workShift);
+    const todayStr = formatDateStr(workingDate);
 
     const daysOfWeekLabels = ["일", "월", "화", "수", "목", "금", "토"];
 
@@ -116,7 +116,7 @@ export default function MonthlyCalendar({
                     const delivery = deliveries.find((d) => d.date === dateStr);
                     const isRest = isRestDay(dateStr, currentDayOfWeek);
                     const hasDelivery = !!delivery;
-                    const isToday = year === todayYear && month === todayMonth && day === todayDay;
+                    const isToday = dateStr === todayStr;
                     const isSelected = selectedDate === dateStr;
 
                     return (

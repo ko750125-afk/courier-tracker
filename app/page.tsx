@@ -11,6 +11,7 @@ import {
 } from "@/lib/store";
 import { formatNumber } from "@/lib/calculations";
 import { useAuth } from "@/lib/contexts/AuthContext";
+import { getWorkingDate, formatDateStr } from "@/lib/utils";
 
 export default function HomePage() {
   const { user, loading: authLoading } = useAuth();
@@ -41,16 +42,9 @@ export default function HomePage() {
   }, [loadData]);
 
   const handleSave = async (total: number) => {
-    const targetDate = new Date();
-    // 야간 근무자이고 정오(12시) 이전이면 전날 실적으로 처리
-    if (settings.workShift === "night" && targetDate.getHours() < 12) {
-        targetDate.setDate(targetDate.getDate() - 1);
-    }
-    
-    const y = targetDate.getFullYear();
-    const m = String(targetDate.getMonth() + 1).padStart(2, "0");
-    const d = String(targetDate.getDate()).padStart(2, "0");
-    const targetDateStr = `${y}-${m}-${d}`;
+    const workingDate = getWorkingDate(settings.workShift);
+    const targetDateStr = formatDateStr(workingDate);
+
     await saveDelivery(targetDateStr, total, user?.uid);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
@@ -68,14 +62,8 @@ export default function HomePage() {
     );
   }
 
-  const workingDate = new Date();
-  if (settings.workShift === "night" && workingDate.getHours() < 12) {
-    workingDate.setDate(workingDate.getDate() - 1);
-  }
-  const y = workingDate.getFullYear();
-  const m = String(workingDate.getMonth() + 1).padStart(2, "0");
-  const d = String(workingDate.getDate()).padStart(2, "0");
-  const todayStr = `${y}-${m}-${d}`;
+  const workingDate = getWorkingDate(settings.workShift);
+  const todayStr = formatDateStr(workingDate);
   const todayDelivery = (deliveries || []).find((d) => d && d.date === todayStr);
 
   return (
