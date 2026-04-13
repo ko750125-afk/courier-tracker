@@ -100,6 +100,17 @@ export async function syncFromCloud(uid?: string, targetIdOverride?: string): Pr
         if (mergedDeliveries.length > 0) {
             safeSet(STORAGE_KEY_DELIVERIES, JSON.stringify(mergedDeliveries));
             deliveries = mergedDeliveries;
+
+            // AUTO-BACKUP: If cloud was empty but we have local data, upload it now
+            if (cloudDeliveries.length === 0 && localDeliveries.length > 0) {
+                console.log(`☁️ Auto-Backing up ${localDeliveries.length} deliveries to cloud...`);
+                const batch = writeBatch(database);
+                localDeliveries.forEach(d => {
+                    const ref = doc(database, "users", id, "deliveries", d.date);
+                    batch.set(ref, { total: d.total }, { merge: true });
+                });
+                await batch.commit();
+            }
         }
 
         const tipsSnap = await getDocs(collection(database, "users", id, "tips"));

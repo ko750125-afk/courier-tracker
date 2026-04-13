@@ -44,21 +44,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const logout = async () => {
         if (typeof window === "undefined") return;
 
-        // 1. Clear local storage immediately for UI responsiveness
-        const keysToClear = [
-            "courier-tracker-settings",
-            "courier-tracker-deliveries",
-            "courier-tracker-tips",
-            "courier-tracker-settlements"
-        ];
-        keysToClear.forEach(key => localStorage.removeItem(key));
-
         const auth = getFirebaseAuth();
         try {
-            // 2. Set a safety timeout to force reload even if signOut hangs
+            // Set a safety timeout to force reload even if signOut hangs
+            // We NO LONGER clear localStorage here because it's too dangerous if the logout fails.
+            // The reload will clear React state.
             const forceReload = setTimeout(() => {
                 window.location.href = "/settings";
-            }, 1000);
+            }, 1500);
 
             await firebaseSignOut(auth);
             
@@ -66,7 +59,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             window.location.href = "/settings";
         } catch (error) {
             console.error("Logout Error:", error);
-            // Even on error, we want to force the state reset
             window.location.href = "/settings";
         }
     };
