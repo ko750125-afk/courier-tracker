@@ -41,6 +41,10 @@ export default function SettlementsPage() {
         }
     }, [user?.uid]);
 
+    useEffect(() => {
+        loadData();
+    }, [loadData]);
+
     if (loading || authLoading) {
         return (
             <div className="flex items-center justify-center min-h-[60vh]">
@@ -51,10 +55,6 @@ export default function SettlementsPage() {
             </div>
         );
     }
-
-    useEffect(() => {
-        loadData();
-    }, [loadData]);
 
     // 수령 확인 토글 핸들러
     const handleToggleReceived = async (e: React.MouseEvent, periodStart: string) => {
@@ -76,20 +76,6 @@ export default function SettlementsPage() {
             setTogglingId(null);
         }
     };
-
-    // 로딩 스피너
-    if (loading) {
-        return (
-            <div className="flex items-center justify-center min-h-[80vh]">
-                <div className="relative">
-                    <div className="w-16 h-16 border-4 border-blue-500/10 border-t-blue-500 rounded-full animate-spin" />
-                    <div className="absolute inset-0 flex items-center justify-center">
-                        <div className="w-8 h-8 bg-blue-500/20 rounded-full animate-pulse" />
-                    </div>
-                </div>
-            </div>
-        );
-    }
 
     // 최근 12개월간의 정산 목록 계산
     const settlements = listRecentSettlements(deliveries, settings.zones, settings, 12);
