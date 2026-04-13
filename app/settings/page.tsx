@@ -23,6 +23,7 @@ export default function SettingsPage() {
     const [isSyncing, setIsSyncing] = useState(false);
     const [lastSyncTime, setLastSyncTime] = useState<string | null>(null);
     const [isMigrating, setIsMigrating] = useState(false);
+    const [commissionRateInput, setCommissionRateInput] = useState("");
 
     // Track if settings changed through user interaction
     const isInitialMount = useRef(true);
@@ -31,6 +32,7 @@ export default function SettingsPage() {
         try {
             const s = await loadSettings(user?.uid);
             setSettings(s);
+            setCommissionRateInput(s.commissionRate?.toString() || "");
         } catch (err) {
             console.error("Failed to load settings:", err);
         } finally {
@@ -45,6 +47,10 @@ export default function SettingsPage() {
         // Subscribe to settings changes for real-time sync
         const unsubscribe = subscribeToSettings(user?.uid, (newSettings) => {
             setSettings(newSettings);
+            // Only update input if it's not currently being focused/edited to avoid jumping
+            if (document.activeElement?.id !== "commission-rate-input") {
+                setCommissionRateInput(newSettings.commissionRate?.toString() || "");
+            }
         });
 
         return () => unsubscribe();
@@ -386,21 +392,25 @@ export default function SettingsPage() {
                         <div className="relative">
                             <input
                                 type="text"
+                                id="commission-rate-input"
                                 inputMode="decimal"
-                                value={settings.commissionRate || ""}
+                                value={commissionRateInput}
                                 onChange={(e) => {
                                     const val = e.target.value.replace(/[^0-9.]/g, "");
-                                    // Allow only one decimal point
                                     if (val.split('.').length > 2) return;
-                                    setSettings(prev => ({ ...prev, commissionRate: val === "" ? 0 : parseFloat(val) }));
+                                    setCommissionRateInput(val);
+                                    
+                                    const parsed = parseFloat(val);
+                                    if (!isNaN(parsed) || val === "") {
+                                        setSettings(prev => ({ ...prev, commissionRate: val === "" ? 0 : parsed }));
+                                    }
                                 }}
                                 className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white text-base focus:outline-none focus:border-blue-500/50"
-                                placeholder="예: 15.5"
                             />
                             <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 text-sm">%</span>
                         </div>
                         <p className="text-[10px] text-gray-600 leading-relaxed italic">
-                            * 배송 총 매출에서 위 설정된 비율만큼 공제한 금액이 최종 정산액에 반영됩니다. (예: 15.5%, 3.3% 등)
+                            * 배송 총 매출에서 위 설정된 비율만큼 공제한 금액이 최종 정산액에 반영됩니다.
                         </p>
                     </div>
                 </div>
