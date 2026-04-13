@@ -31,9 +31,11 @@ function safeSet(key: string, value: string): void {
 }
 
 /**
- * Returns either sharedId from settings or unique deviceId
+ * Returns either uid (if logged in), sharedId from settings, or unique deviceId
  */
-function getTargetId(): string {
+function getTargetId(uid?: string): string {
+    if (uid) return uid; // UID takes highest priority
+
     const settingsStr = safeGet(STORAGE_KEY_SETTINGS);
     if (settingsStr) {
         try {
@@ -45,9 +47,9 @@ function getTargetId(): string {
 }
 
 /**
- * Sync from Cloud - can be forced when changing shared ID
+ * Sync from Cloud - can be forced when changing shared ID or Logging in
  */
-export async function syncFromCloud(targetId?: string): Promise<{ settings?: Settings, deliveries?: Delivery[], tips?: DeliveryTip[] }> {
+export async function syncFromCloud(uid?: string, targetIdOverride?: string): Promise<{ settings?: Settings, deliveries?: Delivery[], tips?: DeliveryTip[] }> {
     let database: Firestore;
     try {
         database = getDatabase();
@@ -55,8 +57,8 @@ export async function syncFromCloud(targetId?: string): Promise<{ settings?: Set
         console.error("Database connection failed:", e);
         throw e;
     }
-    const id = (targetId || getTargetId()).trim();
-    if (!id) throw new Error("유효한 공유 ID가 없습니다.");
+    const id = (targetIdOverride || getTargetId(uid)).trim();
+    if (!id) throw new Error("유효한 ID(UID/공유ID/기기ID)가 없습니다.");
 
     try {
         console.log(`📡 Cloud Sync Starting for ID: [${id}]`);
@@ -85,15 +87,61 @@ export async function syncFromCloud(targetId?: string): Promise<{ settings?: Set
             safeSet(STORAGE_KEY_TIPS, JSON.stringify(tips));
         }
 
-        console.log(`✅ Sync Success: Found ${deliveries?.length || 0} deliveries, ${settings ? "with" : "no"} settings.`);
+        console.log(`✅ Sync Success: Found ${deliveries?.length || 0} deliveries for [${id}]`);
         return { settings, deliveries, tips };
     } catch (e: any) {
         console.error("❌ Cloud sync failed:", e);
-        throw e; // throw error to handle in UI
+        throw e;
     }
 }
 
-export async function loadSettings(): Promise<Settings> {
+/**
+ * Migrate data from current deviceId to user's uid
+ */
+export async function migrateFromDeviceToUser(uid: string): Promise<void> {
+    const database = getDatabase();
+    const deviceId = getDeviceId();
+    
+    console.log(`🚀 Migrating data from [${deviceId}] to [${uid}]`);
+
+    try {
+        // 1. Load settings from deviceId
+        const deviceDoc = await getDoc(doc(database, "users", deviceId));
+        if (deviceDoc.exists()) {
+            const settings = deviceDoc.data().settings;
+            await setDoc(doc(database, "users", uid), { settings }, { merge: true });
+        }
+
+        // 2. Load deliveries
+        const deliverySnap = await getDocs(collection(database, "users", deviceId, "deliveries"));
+        if (!deliverySnap.empty) {
+            const batch = writeBatch(database);
+            deliverySnap.docs.forEach(d => {
+                const ref = doc(database, "users", uid, "deliveries", d.id);
+                batch.set(ref, d.data());
+            });
+            await batch.commit();
+        }
+
+        // 3. Load tips
+        const tipsSnap = await getDocs(collection(database, "users", deviceId, "tips"));
+        if (!tipsSnap.empty) {
+            const batch = writeBatch(database);
+            tipsSnap.docs.forEach(d => {
+                const ref = doc(database, "users", uid, "tips", d.id);
+                batch.set(ref, d.data());
+            });
+            await batch.commit();
+        }
+
+        console.log("✅ Migration complete!");
+    } catch (e) {
+        console.error("Migration failed:", e);
+        throw e;
+    }
+}
+
+export async function loadSettings(uid?: string): Promise<Settings> {
     const stored = safeGet(STORAGE_KEY_SETTINGS);
     if (stored) {
         try {
@@ -102,7 +150,7 @@ export async function loadSettings(): Promise<Settings> {
         } catch { }
     }
 
-    const { settings } = await syncFromCloud();
+    const { settings } = await syncFromCloud(uid);
     if (settings) return settings;
 
     // 클라우드에도 데이터가 없는 최초 실행 시에만 로컬 시드 생성
@@ -112,7 +160,7 @@ export async function loadSettings(): Promise<Settings> {
     return defaultS;
 }
 
-export async function saveSettings(settings: Settings): Promise<void> {
+export async function saveSettings(settings: Settings, uid?: string): Promise<void> {
     const prevSettingsStr = safeGet(STORAGE_KEY_SETTINGS);
     const prevSettings = prevSettingsStr ? JSON.parse(prevSettingsStr) as Settings : null;
 
@@ -121,12 +169,12 @@ export async function saveSettings(settings: Settings): Promise<void> {
     try {
         const database = getDatabase();
         if (database) {
-            const id = settings.sharedId || getDeviceId();
+            const id = getTargetId(uid);
             
-            // 공유 ID가 새로 설정되었거나 변경된 경우
-            if (settings.sharedId && (!prevSettings || prevSettings.sharedId !== settings.sharedId)) {
+            // 공유 ID가 새로 설정되었거나 변경된 경우 (비로그인 상태에서만 동작하거나 혹은 로그인 상태에서도 공유 ID 지원)
+            if (!uid && settings.sharedId && (!prevSettings || prevSettings.sharedId !== settings.sharedId)) {
                 // 1. 먼저 해당 공유 ID에 클라우드 데이터가 있는지 확인 (모바일 데이터 보호)
-                const cloudData = await syncFromCloud(settings.sharedId);
+                const cloudData = await syncFromCloud(undefined, settings.sharedId);
                 
                 if (!cloudData.deliveries || cloudData.deliveries.length === 0) {
                     // 클라우드가 비어있을 때만 현재 로컬 데이터를 클라우드에 업로드 (마이그레이션)
@@ -155,13 +203,13 @@ export async function saveSettings(settings: Settings): Promise<void> {
     }
 }
 
-export async function loadDeliveries(): Promise<Delivery[]> {
+export async function loadDeliveries(uid?: string): Promise<Delivery[]> {
     const settingsStr = safeGet(STORAGE_KEY_SETTINGS);
     const hasSharedId = settingsStr && JSON.parse(settingsStr).sharedId;
     
-    // 공유 ID가 설정되어 있으면 항상 클라우드와 먼저 동기화를 시도함
-    if (hasSharedId) {
-        const { deliveries } = await syncFromCloud();
+    // 로그인이 되어있거나 공유 ID가 설정되어 있으면 항상 클라우드와 먼저 동기화를 시도함
+    if (uid || hasSharedId) {
+        const { deliveries } = await syncFromCloud(uid);
         if (deliveries && deliveries.length > 0) {
             return deliveries.sort((a, b) => b.date.localeCompare(a.date));
         }
@@ -177,7 +225,7 @@ export async function loadDeliveries(): Promise<Delivery[]> {
         } catch { }
     }
 
-    if (localDeliveries.length === 0 && !hasSharedId) {
+    if (localDeliveries.length === 0 && !uid && !hasSharedId) {
         const { deliveries } = await syncFromCloud();
         if (deliveries) return deliveries.sort((a, b) => b.date.localeCompare(a.date));
     }
@@ -185,8 +233,8 @@ export async function loadDeliveries(): Promise<Delivery[]> {
     return localDeliveries.sort((a, b) => b.date.localeCompare(a.date));
 }
 
-export async function saveDelivery(date: string, total: number): Promise<void> {
-    const deliveries = await loadDeliveries();
+export async function saveDelivery(date: string, total: number, uid?: string): Promise<void> {
+    const deliveries = await loadDeliveries(uid);
     const existing = deliveries.findIndex((d) => d.date === date);
     if (existing >= 0) {
         deliveries[existing].total = total;
@@ -199,7 +247,7 @@ export async function saveDelivery(date: string, total: number): Promise<void> {
     try {
         const database = getDatabase();
         if (database) {
-            const id = getTargetId();
+            const id = getTargetId(uid);
             await setDoc(doc(database, "users", id, "deliveries", date), { total });
         }
     } catch (e) {
@@ -207,15 +255,15 @@ export async function saveDelivery(date: string, total: number): Promise<void> {
     }
 }
 
-export async function deleteDelivery(date: string): Promise<void> {
-    const deliveries = await loadDeliveries();
+export async function deleteDelivery(date: string, uid?: string): Promise<void> {
+    const deliveries = await loadDeliveries(uid);
     const filtered = deliveries.filter((d) => d.date !== date);
     safeSet(STORAGE_KEY_DELIVERIES, JSON.stringify(filtered));
 
     try {
         const database = getDatabase();
         if (database) {
-            const id = getTargetId();
+            const id = getTargetId(uid);
             await deleteDoc(doc(database, "users", id, "deliveries", date));
         }
     } catch (e) {
@@ -223,7 +271,7 @@ export async function deleteDelivery(date: string): Promise<void> {
     }
 }
 
-export async function loadTips(): Promise<DeliveryTip[]> {
+export async function loadTips(uid?: string): Promise<DeliveryTip[]> {
     const stored = safeGet(STORAGE_KEY_TIPS);
     let localTips: DeliveryTip[] = [];
 
@@ -234,16 +282,16 @@ export async function loadTips(): Promise<DeliveryTip[]> {
         } catch { }
     }
 
-    if (localTips.length === 0) {
-        const { tips } = await syncFromCloud();
+    if (localTips.length === 0 || uid) {
+        const { tips } = await syncFromCloud(uid);
         if (tips) return tips.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     }
 
     return localTips.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 }
 
-export async function saveTip(tip: DeliveryTip): Promise<void> {
-    const tips = await loadTips();
+export async function saveTip(tip: DeliveryTip, uid?: string): Promise<void> {
+    const tips = await loadTips(uid);
     const existing = tips.findIndex((t) => t.id === tip.id);
     if (existing >= 0) {
         tips[existing] = tip;
@@ -256,7 +304,7 @@ export async function saveTip(tip: DeliveryTip): Promise<void> {
     try {
         const database = getDatabase();
         if (database) {
-            const id = getTargetId();
+            const id = getTargetId(uid);
             await setDoc(doc(database, "users", id, "tips", tip.id), tip);
         }
     } catch (e) {
@@ -264,15 +312,15 @@ export async function saveTip(tip: DeliveryTip): Promise<void> {
     }
 }
 
-export async function deleteTip(tipId: string): Promise<void> {
-    const tips = await loadTips();
+export async function deleteTip(tipId: string, uid?: string): Promise<void> {
+    const tips = await loadTips(uid);
     const filtered = tips.filter((t) => t.id !== tipId);
     safeSet(STORAGE_KEY_TIPS, JSON.stringify(filtered));
 
     try {
         const database = getDatabase();
         if (database) {
-            const id = getTargetId();
+            const id = getTargetId(uid);
             await deleteDoc(doc(database, "users", id, "tips", tipId));
         }
     } catch (e) {
@@ -283,21 +331,14 @@ export async function deleteTip(tipId: string): Promise<void> {
 async function seedTestDeliveries(): Promise<void> {
     const stored = safeGet(STORAGE_KEY_DELIVERIES);
     if (!stored) {
-        // 시드 데이터는 로컬 스토리지에만 저장하고 클라우드에는 자동 업로드하지 않음
-        // 사용자가 데이터를 추가하기 시작할 때 자연스럽게 업로드되도록 유도
         safeSet(STORAGE_KEY_DELIVERIES, JSON.stringify(TEST_DELIVERIES));
     }
 }
 
-// ─────────────────────────────────────────────
-// 정산 수령 확인 기능
-// ─────────────────────────────────────────────
-
 /**
  * 정산 수령 확인 상태를 불러옴
- * 로컬 스토리지 → 없으면 클라우드에서 동기화
  */
-export async function loadReceivedSettlements(): Promise<ReceivedSettlementsMap> {
+export async function loadReceivedSettlements(uid?: string): Promise<ReceivedSettlementsMap> {
     const stored = safeGet(STORAGE_KEY_RECEIVED);
     if (stored) {
         try {
@@ -306,10 +347,9 @@ export async function loadReceivedSettlements(): Promise<ReceivedSettlementsMap>
         } catch { }
     }
 
-    // 클라우드에서 불러오기 시도
     try {
         const database = getDatabase();
-        const id = getTargetId();
+        const id = getTargetId(uid);
         const receivedDoc = await getDoc(doc(database, "users", id, "meta", "received_settlements"));
         if (receivedDoc.exists()) {
             const data = receivedDoc.data() as ReceivedSettlementsMap;
@@ -325,27 +365,23 @@ export async function loadReceivedSettlements(): Promise<ReceivedSettlementsMap>
 
 /**
  * 특정 정산 기간의 수령 확인 상태를 저장
- * @param periodStart 정산 시작일 (예: "2026-03-25")
- * @param isReceived 수령 완료 여부
  */
-export async function saveSettlementReceived(periodStart: string, isReceived: boolean): Promise<void> {
-    // 1. 현재 상태 로딩 후 업데이트
-    const current = await loadReceivedSettlements();
+export async function saveSettlementReceived(periodStart: string, isReceived: boolean, uid?: string): Promise<void> {
+    const current = await loadReceivedSettlements(uid);
     const updated: ReceivedSettlementsMap = { ...current, [periodStart]: isReceived };
 
-    // 2. 로컬 스토리지 즉시 저장
     safeSet(STORAGE_KEY_RECEIVED, JSON.stringify(updated));
 
-    // 3. Firestore에도 저장 (meta 컬렉션에 단일 문서로 관리)
     try {
         const database = getDatabase();
-        const id = getTargetId();
+        const id = getTargetId(uid);
         await setDoc(
             doc(database, "users", id, "meta", "received_settlements"),
             updated,
-            { merge: false } // 전체 덮어쓰기
+            { merge: false }
         );
     } catch (e) {
         console.error("수령 확인 클라우드 저장 실패:", e);
     }
 }
+

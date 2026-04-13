@@ -1,4 +1,3 @@
-"use client";
 import { useState, useEffect, useCallback } from "react";
 import { Delivery, Settings, DEFAULT_SETTINGS, ReceivedSettlementsMap } from "@/lib/types";
 import {
@@ -10,8 +9,10 @@ import {
 import { listRecentSettlements, formatWon, formatNumber } from "@/lib/calculations";
 import SettlementModal from "@/components/SettlementModal";
 import Link from "next/link";
+import { useAuth } from "@/lib/contexts/AuthContext";
 
 export default function SettlementsPage() {
+    const { user, loading: authLoading } = useAuth();
     const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
     const [deliveries, setDeliveries] = useState<Delivery[]>([]);
     const [loading, setLoading] = useState(true);
@@ -25,9 +26,9 @@ export default function SettlementsPage() {
     const loadData = useCallback(async () => {
         try {
             const [s, d, r] = await Promise.all([
-                loadSettings(),
-                loadDeliveries(),
-                loadReceivedSettlements(),
+                loadSettings(user?.uid),
+                loadDeliveries(user?.uid),
+                loadReceivedSettlements(user?.uid),
             ]);
             setSettings(s);
             setDeliveries(d);
@@ -37,8 +38,8 @@ export default function SettlementsPage() {
         } finally {
             setLoading(false);
         }
-    }, []);
-
+    }, [user?.uid]);
+// ... (rest of the file stays same but with user?.uid passed)
     useEffect(() => {
         loadData();
     }, [loadData]);
@@ -54,7 +55,7 @@ export default function SettlementsPage() {
         setTogglingId(periodStart);
 
         try {
-            await saveSettlementReceived(periodStart, next);
+            await saveSettlementReceived(periodStart, next, user?.uid);
         } catch (e) {
             // 저장 실패 시 이전 상태로 롤백
             setReceivedMap(prev => ({ ...prev, [periodStart]: current }));
@@ -65,7 +66,7 @@ export default function SettlementsPage() {
     };
 
     // 로딩 스피너
-    if (loading) {
+    if (loading || authLoading) {
         return (
             <div className="flex items-center justify-center min-h-[80vh]">
                 <div className="relative">
@@ -77,6 +78,7 @@ export default function SettlementsPage() {
             </div>
         );
     }
+
 
     // 최근 12개월간의 정산 목록 계산
     const settlements = listRecentSettlements(deliveries, settings.zones, settings, 12);

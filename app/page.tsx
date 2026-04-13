@@ -1,4 +1,3 @@
-"use client";
 import { useState, useEffect, useCallback } from "react";
 import DeliveryInput from "@/components/DeliveryInput";
 import Dashboard from "@/components/Dashboard";
@@ -10,8 +9,10 @@ import {
   saveSettings,
 } from "@/lib/store";
 import { formatNumber } from "@/lib/calculations";
+import { useAuth } from "@/lib/contexts/AuthContext";
 
 export default function HomePage() {
+  const { user, loading: authLoading } = useAuth();
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
   const [deliveries, setDeliveries] = useState<Delivery[]>([]);
   const [loading, setLoading] = useState(true);
@@ -20,7 +21,10 @@ export default function HomePage() {
 
   const loadData = useCallback(async () => {
     try {
-      const [s, d] = await Promise.all([loadSettings(), loadDeliveries()]);
+      const [s, d] = await Promise.all([
+        loadSettings(user?.uid), 
+        loadDeliveries(user?.uid)
+      ]);
       setSettings(s);
       setDeliveries(d);
     } catch (err) {
@@ -28,7 +32,7 @@ export default function HomePage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [user?.uid]);
 
   useEffect(() => {
     setIsMounted(true);
@@ -46,13 +50,13 @@ export default function HomePage() {
     const m = String(targetDate.getMonth() + 1).padStart(2, "0");
     const d = String(targetDate.getDate()).padStart(2, "0");
     const targetDateStr = `${y}-${m}-${d}`;
-    await saveDelivery(targetDateStr, total);
+    await saveDelivery(targetDateStr, total, user?.uid);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
     await loadData();
   };
 
-  if (!isMounted || loading) {
+  if (!isMounted || loading || authLoading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="text-center">
@@ -112,7 +116,7 @@ export default function HomePage() {
           settings={settings}
           todayTotal={todayDelivery?.total ?? null}
           onUpdateSettings={async (newSettings) => {
-            await saveSettings(newSettings);
+            await saveSettings(newSettings, user?.uid);
             setSettings(newSettings);
           }}
         />
@@ -120,3 +124,4 @@ export default function HomePage() {
     </div>
   );
 }
+

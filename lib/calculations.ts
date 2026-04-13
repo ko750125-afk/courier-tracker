@@ -273,6 +273,7 @@ export function getSettlementByDate(
     return { amount, paymentDate, paymentLabel, periodStart, periodEnd, breakdown };
 }
 
+
 /**
  * Calculate next payment amount (Current logic wrapper)
  */

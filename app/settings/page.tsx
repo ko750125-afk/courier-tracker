@@ -1,4 +1,3 @@
-"use client";
 import { useState, useEffect, useCallback, useRef } from "react";
 import ZoneManager from "@/components/ZoneManager";
 import {
@@ -9,33 +8,34 @@ import {
     WORK_TYPE_LABELS,
     DEFAULT_SETTINGS,
 } from "@/lib/types";
-import { loadSettings, saveSettings, syncFromCloud } from "@/lib/store";
-
+import { loadSettings, saveSettings, syncFromCloud, migrateFromDeviceToUser, getDeviceId } from "@/lib/store";
+import { useAuth } from "@/lib/contexts/AuthContext";
 import PWAInstaller from "@/components/PWAInstaller";
 
 export default function SettingsPage() {
+    const { user, loginWithGoogle, logout, loading: authLoading } = useAuth();
     const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
     const [loading, setLoading] = useState(true);
     const [isMounted, setIsMounted] = useState(false);
     const [saving, setSaving] = useState(false);
     const [saved, setSaved] = useState(false);
-    const [isSharedIdFocused, setIsSharedIdFocused] = useState(false);
     const [isSyncing, setIsSyncing] = useState(false);
     const [lastSyncTime, setLastSyncTime] = useState<string | null>(null);
+    const [isMigrating, setIsMigrating] = useState(false);
 
     // Track if settings changed through user interaction
     const isInitialMount = useRef(true);
 
     const loadData = useCallback(async () => {
         try {
-            const s = await loadSettings();
+            const s = await loadSettings(user?.uid);
             setSettings(s);
         } catch (err) {
             console.error("Failed to load settings:", err);
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [user?.uid]);
 
     useEffect(() => {
         setIsMounted(true);
@@ -52,7 +52,7 @@ export default function SettingsPage() {
         const timer = setTimeout(async () => {
             setSaving(true);
             try {
-                await saveSettings(settings);
+                await saveSettings(settings, user?.uid);
                 setSaved(true);
                 setTimeout(() => setSaved(false), 2000);
             } catch (err) {
@@ -63,7 +63,7 @@ export default function SettingsPage() {
         }, 800); // Wait for 800ms of inactivity before saving
 
         return () => clearTimeout(timer);
-    }, [settings, loading]);
+    }, [settings, loading, user?.uid]);
 
     const handleZonesChange = (zones: Zone[]) => {
         setSettings((prev) => ({ ...prev, zones }));
@@ -80,33 +80,52 @@ export default function SettingsPage() {
             if (current.includes(dayIndex)) {
                 updated = current.filter((d: number) => d !== dayIndex);
             } else {
-                updated = [...current, dayIndex].sort((a, b) => a - b);
+                updated = [...current, dayIndex].sort((a, b) => b - a);
             }
             return { ...prev, restDaysOfWeek: updated };
         });
     };
 
     const handleManualSync = async () => {
-        if (isSyncing || !settings.sharedId) return;
+        if (isSyncing || (!settings.sharedId && !user)) return;
 
         setIsSyncing(true);
         try {
-            const result = await syncFromCloud(settings.sharedId);
+            const result = await syncFromCloud(user?.uid, settings.sharedId);
             const deliveryCount = (result.deliveries || []).length;
             
             if (result.settings) {
                 setSettings(result.settings);
             }
             setLastSyncTime(new Date().toLocaleTimeString());
-            alert(`✅ 동기화 완료! 모바일에서 ${deliveryCount}개의 기록을 성공적으로 가져왔습니다.`);
+            alert(`✅ 동기화 완료! 클라우드에서 ${deliveryCount}개의 기록을 성공적으로 가져왔습니다.`);
         } catch (e: any) {
-            alert(`❌ 동기화 실패: ${e.message || "알 수 없는 오류가 발생했습니다."}\n공유 ID가 모바일과 일치하는지 다시 한번 확인해 주세요.`);
+            alert(`❌ 동기화 실패: ${e.message || "알 수 없는 오류가 발생했습니다."}\n인터넷 연결을 확인해 주세요.`);
         } finally {
             setIsSyncing(false);
         }
     };
 
-    if (!isMounted || loading) {
+    const handleMigration = async () => {
+        if (!user || isMigrating) return;
+        
+        if (!confirm("지금 현재 기기에 저장된 모든 기록을 구글 계정으로 옮기시겠습니까?\n이후에는 로그인한 상태에서만 이 기록들을 볼 수 있습니다.")) {
+            return;
+        }
+
+        setIsMigrating(true);
+        try {
+            await migrateFromDeviceToUser(user.uid);
+            alert("✅ 모든 데이터가 계정으로 이전되었습니다! 이제 다른 기기에서도 로그인만 하면 바로 볼 수 있어요.");
+            loadData();
+        } catch (e) {
+            alert("❌ 데이터 이전 중 오류가 발생했습니다. 나중에 다시 시도해 주세요.");
+        } finally {
+            setIsMigrating(false);
+        }
+    };
+
+    if (!isMounted || loading || authLoading) {
         return (
             <div className="flex items-center justify-center min-h-[60vh]">
                 <div className="w-10 h-10 border-2 border-gray-600 border-t-blue-500 rounded-full animate-spin" />
@@ -128,6 +147,79 @@ export default function SettingsPage() {
                     )}
                 </div>
             </div>
+
+            {/* Login / Profile Card */}
+            <div className="mb-8 bg-gradient-to-br from-slate-900 to-slate-950 border border-slate-800 p-6 rounded-3xl shadow-xl relative overflow-hidden group">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-blue-600/10 blur-3xl -mr-10 -mt-10 group-hover:bg-blue-600/20 transition-all" />
+                
+                {user ? (
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                            {user.photoURL ? (
+                                <img src={user.photoURL} alt="Profile" className="w-12 h-12 rounded-full border-2 border-blue-500/50 shadow-lg" />
+                            ) : (
+                                <div className="w-12 h-12 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold text-lg">
+                                    {user.displayName?.charAt(0) || "U"}
+                                </div>
+                            )}
+                            <div>
+                                <h2 className="text-slate-100 font-bold mb-0.5">{user.displayName || "사용자"}</h2>
+                                <p className="text-slate-500 text-xs">{user.email}</p>
+                            </div>
+                        </div>
+                        <button 
+                            onClick={logout}
+                            className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold rounded-xl border border-slate-700 transition-all"
+                        >
+                            로그아웃
+                        </button>
+                    </div>
+                ) : (
+                    <div className="text-center py-2">
+                        <h2 className="text-slate-100 font-bold mb-2">데이터 클라우드 저장</h2>
+                        <p className="text-slate-500 text-xs mb-6 px-4">
+                            구글로 로그인하면 기기를 바꿔도 데이터가 안전하게 유지됩니다.
+                        </p>
+                        <button 
+                            onClick={loginWithGoogle}
+                            className="w-full py-4 bg-white text-slate-950 font-bold rounded-2xl flex items-center justify-center gap-3 active:scale-[0.98] transition-all hover:bg-slate-100 shadow-xl"
+                        >
+                            <svg className="w-5 h-5" viewBox="0 0 24 24">
+                                <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                                <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/>
+                                <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                            </svg>
+                            구글로 시작하기
+                        </button>
+                    </div>
+                )}
+
+                {/* Migration helper for logged in users with local data */}
+                {user && (
+                    <div className="mt-8 pt-6 border-t border-slate-800/50">
+                        <div className="flex items-center gap-3 mb-2">
+                            <span className="text-xs font-bold text-blue-400">데이터 연동 내역</span>
+                            <div className="h-px flex-1 bg-slate-800/50" />
+                        </div>
+                        <p className="text-[10px] text-slate-500 mb-4">
+                            로그인 전 이 기기에 저장된 기록이 있다면 계정으로 옮겨보세요.
+                        </p>
+                        <button 
+                            onClick={handleMigration}
+                            disabled={isMigrating}
+                            className={`w-full py-3 rounded-xl text-xs font-bold transition-all border ${
+                                isMigrating 
+                                    ? "bg-slate-900 text-slate-600 border-slate-800" 
+                                    : "bg-blue-600/10 text-blue-400 border-blue-500/20 hover:bg-blue-600/20 active:scale-[0.98]"
+                            }`}
+                        >
+                            {isMigrating ? "기록 옮기는 중..." : "지금 기기 기록을 계정으로 합치기"}
+                        </button>
+                    </div>
+                )}
+            </div>
+
 
             {/* Zone Manager */}
             <ZoneManager zones={settings.zones} onChange={handleZonesChange} />
@@ -197,50 +289,8 @@ export default function SettingsPage() {
                     * 야간 배송(밤 10시~다음날 오전)의 경우, 새벽에 입력한 실적이 배송을 시작한 전날 날짜로 자동 기록됩니다.
                 </p>
             </div>
-
-            {/* Coupang Incentive Settings */}
-            <div className="mt-8 bg-slate-900/50 border border-slate-800 p-6 rounded-2xl">
-                <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-base font-bold text-slate-200 uppercase tracking-widest text-xs">쿠팡 신선백 인센티브</h3>
-                    <button
-                        onClick={() => setSettings(prev => ({ ...prev, isCoupangMode: !prev.isCoupangMode }))}
-                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
-                            settings.isCoupangMode ? 'bg-blue-600' : 'bg-gray-700'
-                        }`}
-                    >
-                        <span
-                            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                                settings.isCoupangMode ? 'translate-x-6' : 'translate-x-1'
-                            }`}
-                        />
-                    </button>
-                </div>
-                
-                {settings.isCoupangMode && (
-                    <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
-                        <div>
-                            <label className="text-xs text-gray-500 block mb-1.5">연계 인센티브 (원)</label>
-                            <input
-                                type="number"
-                                value={settings.linkedIncentive ?? 0}
-                                onChange={(e) => setSettings(prev => ({ ...prev, linkedIncentive: parseInt(e.target.value) || 0 }))}
-                                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white text-base focus:outline-none focus:border-blue-500/50"
-                                placeholder="예: 15"
-                            />
-                        </div>
-                        <div>
-                            <label className="text-xs text-gray-500 block mb-1.5">단독 인센티브 (원)</label>
-                            <input
-                                type="number"
-                                value={settings.soloIncentive ?? 0}
-                                onChange={(e) => setSettings(prev => ({ ...prev, soloIncentive: parseInt(e.target.value) || 0 }))}
-                                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white text-base focus:outline-none focus:border-blue-500/50"
-                                placeholder="예: 10"
-                            />
-                        </div>
-                    </div>
-                )}
             </div>
+
 
             {/* Rest Days Of Week */}
             <div className="mt-8 bg-slate-900/50 border border-slate-800 p-6 rounded-2xl">

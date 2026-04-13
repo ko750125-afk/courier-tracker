@@ -98,6 +98,8 @@ export const DEFAULT_SETTINGS: Settings = {
     useSoundEffects: false,
 };
 
+
+
 export const TEST_DELIVERIES: Delivery[] = [
     { date: "2026-03-01", total: 120 },
     { date: "2026-03-02", total: 135 },

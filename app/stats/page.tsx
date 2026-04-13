@@ -1,9 +1,9 @@
-"use client";
 import { useState, useEffect, useCallback } from "react";
 import dynamic from "next/dynamic";
 import { Delivery, Settings, DEFAULT_SETTINGS } from "@/lib/types";
 import { loadSettings, loadDeliveries, saveSettings, saveDelivery, deleteDelivery } from "@/lib/store";
 import MonthlyCalendar from "@/components/MonthlyCalendar";
+import { useAuth } from "@/lib/contexts/AuthContext";
 import {
     calcMonthlyStats,
     calcDailyRevenue,
@@ -18,6 +18,7 @@ const ChartView = dynamic(() => import("@/components/ChartView"), {
 });
 
 export default function StatsPage() {
+    const { user, loading: authLoading } = useAuth();
     const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
     const [deliveries, setDeliveries] = useState<Delivery[]>([]);
     const [loading, setLoading] = useState(true);
@@ -26,7 +27,10 @@ export default function StatsPage() {
 
     const loadData = useCallback(async () => {
         try {
-            const [s, d] = await Promise.all([loadSettings(), loadDeliveries()]);
+            const [s, d] = await Promise.all([
+                loadSettings(user?.uid), 
+                loadDeliveries(user?.uid)
+            ]);
             setSettings(s);
             setDeliveries(d);
         } catch (err) {
@@ -34,7 +38,7 @@ export default function StatsPage() {
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [user?.uid]);
 
     useEffect(() => {
         setIsMounted(true);
@@ -46,7 +50,7 @@ export default function StatsPage() {
         loadData();
     }, [loadData]);
 
-    if (!isMounted || loading || !selectedMonth) {
+    if (!isMounted || loading || authLoading || !selectedMonth) {
         return (
             <div className="flex items-center justify-center min-h-[60vh]">
                 <div className="w-10 h-10 border-2 border-gray-600 border-t-blue-500 rounded-full animate-spin" />
@@ -71,7 +75,7 @@ export default function StatsPage() {
         const newSettings = { ...settings, restDateOverrides: newOverrides };
         setSettings(newSettings); // 즉시 UI 반영
         try {
-            await saveSettings(newSettings);
+            await saveSettings(newSettings, user?.uid);
         } catch (err) {
             console.error("Failed to save rest date:", err);
         }
@@ -79,7 +83,7 @@ export default function StatsPage() {
 
     const handleSaveDelivery = async (dateStr: string, total: number) => {
         try {
-            await saveDelivery(dateStr, total);
+            await saveDelivery(dateStr, total, user?.uid);
             await loadData();
         } catch (err) {
             console.error("Failed to save delivery:", err);
@@ -89,13 +93,14 @@ export default function StatsPage() {
     const handleDeleteDelivery = async (dateStr: string) => {
         if (confirm("해당 날짜의 배송 기록을 삭제하시겠습니까?")) {
             try {
-                await deleteDelivery(dateStr);
+                await deleteDelivery(dateStr, user?.uid);
                 await loadData();
             } catch (err) {
                 console.error("Failed to delete delivery:", err);
             }
         }
     };
+
 
     const [year, month] = selectedMonth.split("-").map(Number);
     const { totalDeliveries, totalRevenue } = calcMonthlyStats(

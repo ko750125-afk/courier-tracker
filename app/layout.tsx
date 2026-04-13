@@ -5,6 +5,7 @@ import BottomNav from "@/components/BottomNav";
 import ErrorWatcher from "@/components/ErrorWatcher";
 import OnboardingGuide from "@/components/OnboardingGuide";
 import FunctionalGuide from "@/components/FunctionalGuide";
+import { AuthProvider } from "@/lib/contexts/AuthContext";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -43,24 +44,27 @@ export default function RootLayout({
         suppressHydrationWarning
         className={`${inter.className} bg-slate-950 text-slate-100 min-h-screen antialiased selection:bg-blue-500/30`}
       >
-        <div className="fixed inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-10 pointer-events-none" />
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              if ('serviceWorker' in navigator) {
-                window.addEventListener('load', function() {
-                  navigator.serviceWorker.register('/sw.js');
-                });
-              }
-            `,
-          }}
-        />
-        <ErrorWatcher />
-        <OnboardingGuide />
-        <FunctionalGuide />
-        <main className="relative max-w-lg mx-auto px-4 pt-8 pb-28 focus:outline-none">{children}</main>
-        <BottomNav />
+        <AuthProvider>
+          <div className="fixed inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-10 pointer-events-none" />
+          <script
+            dangerouslySetInnerHTML={{
+              __html: `
+                if ('serviceWorker' in navigator) {
+                  window.addEventListener('load', function() {
+                    navigator.serviceWorker.register('/sw.js');
+                  });
+                }
+              `,
+            }}
+          />
+          <ErrorWatcher />
+          <OnboardingGuide />
+          <FunctionalGuide />
+          <main className="relative max-w-lg mx-auto px-4 pt-8 pb-28 focus:outline-none">{children}</main>
+          <BottomNav />
+        </AuthProvider>
       </body>
     </html>
   );
 }
+

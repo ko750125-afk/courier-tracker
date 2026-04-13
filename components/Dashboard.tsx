@@ -149,6 +149,8 @@ export default function Dashboard({
                         </svg>
                     </button>
                 </div>
+
+
             </div>
 
             {/* Coupang Incentives - Positioned below Expected Payout card */}

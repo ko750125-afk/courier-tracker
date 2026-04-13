@@ -1,5 +1,6 @@
 import { initializeApp, getApps, FirebaseApp } from "firebase/app";
 import { getFirestore, Firestore } from "firebase/firestore";
+import { getAuth, Auth, GoogleAuthProvider } from "firebase/auth";
 
 const firebaseConfig = {
     apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -12,30 +13,32 @@ const firebaseConfig = {
 
 let appInternal: FirebaseApp | undefined;
 let dbInternal: Firestore | undefined;
+let authInternal: Auth | undefined;
 
-export function getDatabase(): Firestore {
+function initializeFirebase() {
+    if (appInternal) return { app: appInternal, db: dbInternal!, auth: authInternal! };
+
     const apiKey = process.env.NEXT_PUBLIC_FIREBASE_API_KEY;
-    console.log("Firebase API Key check:", apiKey ? "Found (masked)" : "Not found");
-
     if (!apiKey) {
         throw new Error(`Firebase API Key가 누락되었습니다. Vercel(또는 .env.local)에 설정이 되어있는지 꼭 확인해 주세요.`);
     }
 
-    try {
-        appInternal = getApps().length === 0 ? initializeApp({
-            apiKey: apiKey,
-            authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-            projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-            storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-            messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-            appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
-        }) : getApps()[0];
-        dbInternal = getFirestore(appInternal);
-        return dbInternal;
-    } catch (e: any) {
-        throw new Error(`초기화 실패: ${e.message}`);
-    }
+    appInternal = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+    dbInternal = getFirestore(appInternal);
+    authInternal = getAuth(appInternal);
+
+    return { app: appInternal, db: dbInternal, auth: authInternal };
 }
+
+export function getDatabase(): Firestore {
+    return initializeFirebase().db;
+}
+
+export function getFirebaseAuth(): Auth {
+    return initializeFirebase().auth;
+}
+
+export const googleProvider = new GoogleAuthProvider();
 
 export const db: Firestore | undefined = (typeof window !== "undefined" && firebaseConfig.apiKey) 
     ? getFirestore(getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0]) 
@@ -60,3 +63,4 @@ export function getDeviceId(): string {
         return "fallback-id-" + Date.now();
     }
 }
+
