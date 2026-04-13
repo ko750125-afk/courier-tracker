@@ -1,6 +1,6 @@
 import { Settings, Delivery, DEFAULT_SETTINGS, TEST_DELIVERIES, DeliveryTip, ReceivedSettlementsMap } from "./types";
 import { getDatabase, getDeviceId } from "./firebase";
-import { doc, setDoc, getDoc, collection, getDocs, deleteDoc, writeBatch, Firestore } from "firebase/firestore";
+import { doc, setDoc, getDoc, collection, getDocs, deleteDoc, writeBatch, Firestore, onSnapshot } from "firebase/firestore";
 
 const STORAGE_KEY_SETTINGS = "courier-tracker-settings";
 const STORAGE_KEY_DELIVERIES = "courier-tracker-deliveries";
@@ -58,7 +58,9 @@ export async function syncFromCloud(uid?: string, targetIdOverride?: string): Pr
         throw e;
     }
     const id = (targetIdOverride || getTargetId(uid)).trim();
-    if (!id) throw new Error("유효한 ID(UID/공유ID/기기ID)가 없습니다.");
+    if (!id) return {}; // Silently return if no ID (e.g. initial load)
+
+    const isShared = !!targetIdOverride || (!uid && !!(safeGet(STORAGE_KEY_SETTINGS) && JSON.parse(safeGet(STORAGE_KEY_SETTINGS)!).sharedId));
 
     try {
         console.log(`📡 Cloud Sync Starting for ID: [${id}]`);
@@ -72,13 +74,32 @@ export async function syncFromCloud(uid?: string, targetIdOverride?: string): Pr
             safeSet(STORAGE_KEY_SETTINGS, JSON.stringify(settings));
         }
 
-        const deliverySnap = await getDocs(collection(database, "users", id, "deliveries"));
-        if (!deliverySnap.empty) {
-            deliveries = deliverySnap.docs.map(d => ({
-                date: d.id,
-                total: d.data().total || 0
-            } as Delivery));
-            safeSet(STORAGE_KEY_DELIVERIES, JSON.stringify(deliveries));
+        const cloudDeliveries = !deliverySnap.empty ? deliverySnap.docs.map(d => ({
+            date: d.id,
+            total: d.data().total || 0
+        } as Delivery)) : [];
+
+        // MERGE LOGIC: Don't overwrite local if cloud is empty or different
+        const storedDeliveriesRaw = safeGet(STORAGE_KEY_DELIVERIES);
+        let localDeliveries: Delivery[] = [];
+        if (storedDeliveriesRaw) {
+            try { localDeliveries = JSON.parse(storedDeliveriesRaw); } catch { }
+        }
+
+        // Merge: prefer cloud for specific dates if cloud has them, but keep local for dates NOT in cloud
+        const mergedDeliveries = [...localDeliveries];
+        cloudDeliveries.forEach(cd => {
+            const idx = mergedDeliveries.findIndex(ld => ld.date === cd.date);
+            if (idx >= 0) {
+                mergedDeliveries[idx] = cd;
+            } else {
+                mergedDeliveries.push(cd);
+            }
+        });
+
+        if (mergedDeliveries.length > 0) {
+            safeSet(STORAGE_KEY_DELIVERIES, JSON.stringify(mergedDeliveries));
+            deliveries = mergedDeliveries;
         }
 
         const tipsSnap = await getDocs(collection(database, "users", id, "tips"));
@@ -87,7 +108,7 @@ export async function syncFromCloud(uid?: string, targetIdOverride?: string): Pr
             safeSet(STORAGE_KEY_TIPS, JSON.stringify(tips));
         }
 
-        console.log(`✅ Sync Success: Found ${deliveries?.length || 0} deliveries for [${id}]`);
+        console.log(`✅ Sync Success: [${id}] -> Merged ${mergedDeliveries.length} deliveries.`);
         return { settings, deliveries, tips };
     } catch (e: any) {
         console.error("❌ Cloud sync failed:", e);
@@ -138,6 +159,33 @@ export async function migrateFromDeviceToUser(uid: string): Promise<void> {
     } catch (e) {
         console.error("Migration failed:", e);
         throw e;
+    }
+}
+
+/**
+ * Subscribe to settings changes (Real-time Sync)
+ */
+export function subscribeToSettings(uid: string | undefined, callback: (settings: Settings) => void) {
+    if (!isClient()) return () => {};
+    
+    try {
+        const database = getDatabase();
+        const id = getTargetId(uid);
+        
+        return onSnapshot(doc(database, "users", id), (doc) => {
+            if (doc.exists() && doc.data().settings) {
+                const settings = doc.data().settings as Settings;
+                // Only update and callback if actually different to prevent loops
+                const current = safeGet(STORAGE_KEY_SETTINGS);
+                if (current !== JSON.stringify(settings)) {
+                    safeSet(STORAGE_KEY_SETTINGS, JSON.stringify(settings));
+                    callback(settings);
+                }
+            }
+        });
+    } catch (e) {
+        console.warn("Real-time sync subscription failed:", e);
+        return () => {};
     }
 }
 

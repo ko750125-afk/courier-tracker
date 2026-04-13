@@ -9,7 +9,7 @@ import {
     WORK_TYPE_LABELS,
     DEFAULT_SETTINGS,
 } from "@/lib/types";
-import { loadSettings, saveSettings, syncFromCloud, migrateFromDeviceToUser, getDeviceId } from "@/lib/store";
+import { loadSettings, saveSettings, syncFromCloud, migrateFromDeviceToUser, getDeviceId, subscribeToSettings } from "@/lib/store";
 import { useAuth } from "@/lib/contexts/AuthContext";
 import PWAInstaller from "@/components/PWAInstaller";
 
@@ -41,7 +41,14 @@ export default function SettingsPage() {
     useEffect(() => {
         setIsMounted(true);
         loadData();
-    }, [loadData]);
+
+        // Subscribe to settings changes for real-time sync
+        const unsubscribe = subscribeToSettings(user?.uid, (newSettings) => {
+            setSettings(newSettings);
+        });
+
+        return () => unsubscribe();
+    }, [loadData, user?.uid]);
 
     // Auto-save effect
     useEffect(() => {
@@ -136,7 +143,7 @@ export default function SettingsPage() {
 
     return (
         <div>
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center justify-between mb-6 px-1">
                 <h1 className="text-xl font-bold text-gray-100">설정</h1>
                 <div className="flex items-center gap-2">
                     {saving ? (
@@ -147,6 +154,34 @@ export default function SettingsPage() {
                         <span className="text-[10px] text-slate-500">모든 변경사항 자동 저장</span>
                     )}
                 </div>
+            </div>
+
+            {/* Account Debug Panel (Helpful for sync issues) */}
+            <div className="mb-6 bg-slate-900/40 border border-slate-800/80 p-4 rounded-2xl flex flex-col gap-3 shadow-inner">
+                <div className="flex items-center justify-between border-b border-slate-800/50 pb-2">
+                    <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">계정 디버그 상세 정보</span>
+                    <span className="text-[9px] text-slate-600 bg-slate-800 px-1.5 py-0.5 rounded">동기화 체크용</span>
+                </div>
+                <div className="grid grid-cols-1 gap-2">
+                    <div className="flex justify-between items-center bg-black/30 p-2.5 rounded-xl border border-white/5 shadow-sm">
+                        <div className="flex flex-col">
+                            <span className="text-[9px] text-slate-500 font-bold">GOOGLE UID</span>
+                            <span className="text-[11px] font-mono text-blue-400 truncate max-w-[200px]">
+                                {user ? user.uid : "로그인 안 됨"}
+                            </span>
+                        </div>
+                        {user && <span className="text-[9px] text-blue-600/50 px-1 bg-blue-500/5 border border-blue-500/10 rounded">ACTIVE</span>}
+                    </div>
+                    <div className="flex justify-between items-center bg-black/30 p-2.5 rounded-xl border border-white/5 shadow-sm">
+                        <div className="flex flex-col">
+                            <span className="text-[9px] text-slate-500 font-bold">DEVICE ID</span>
+                            <span className="text-[11px] font-mono text-indigo-400 truncate max-w-[200px]">
+                                {getDeviceId()}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                <p className="text-[9px] text-slate-600 italic leading-tight">* 모바일과 PC의 'GOOGLE UID'가 다르면 설정 내용이 공유되지 않습니다.</p>
             </div>
 
             {/* Login / Profile Card */}

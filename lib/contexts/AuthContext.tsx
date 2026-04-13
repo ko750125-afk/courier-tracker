@@ -45,6 +45,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const auth = getFirebaseAuth();
         try {
             await firebaseSignOut(auth);
+            // Force reload to clear all local states and redirect to settings
+            if (typeof window !== "undefined") {
+                window.location.href = "/settings";
+            }
         } catch (error) {
             console.error("Logout Error:", error);
             throw error;
