@@ -10,7 +10,6 @@ import {
     DEFAULT_SETTINGS,
 } from "@/lib/types";
 import { loadSettings, saveSettings, syncFromCloud, migrateFromDeviceToUser, subscribeToSettings } from "@/lib/store";
-import { getDeviceId } from "@/lib/firebase";
 import { useAuth } from "@/lib/contexts/AuthContext";
 import PWAInstaller from "@/components/PWAInstaller";
 
@@ -157,40 +156,6 @@ export default function SettingsPage() {
                 </div>
             </div>
 
-            {/* Account Debug Panel (Helpful for sync issues) */}
-            <div className="mb-6 bg-slate-900/40 border border-slate-800/80 p-4 rounded-2xl flex flex-col gap-3 shadow-inner">
-                <div className="flex items-center justify-between border-b border-slate-800/50 pb-2">
-                    <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">계정 디버그 상세 정보</span>
-                    <span className="text-[9px] text-slate-600 bg-slate-800 px-1.5 py-0.5 rounded">동기화 체크용</span>
-                </div>
-                <div className="grid grid-cols-1 gap-2">
-                    <div className="flex justify-between items-center bg-black/30 p-2.5 rounded-xl border border-white/5 shadow-sm">
-                        <div className="flex flex-col">
-                            <span className="text-[9px] text-slate-500 font-bold">GOOGLE UID / EMAIL</span>
-                            <div className="flex flex-col">
-                                <span className="text-[11px] font-mono text-blue-400 truncate max-w-[200px]">
-                                    {user ? user.uid : "로그인 안 됨"}
-                                </span>
-                                {user?.email && (
-                                    <span className="text-[10px] text-slate-400 font-medium">
-                                        {user.email}
-                                    </span>
-                                )}
-                            </div>
-                        </div>
-                        {user && <span className="text-[9px] text-blue-600/50 px-1 bg-blue-500/5 border border-blue-500/10 rounded">ACTIVE</span>}
-                    </div>
-                    <div className="flex justify-between items-center bg-black/30 p-2.5 rounded-xl border border-white/5 shadow-sm">
-                        <div className="flex flex-col">
-                            <span className="text-[9px] text-slate-500 font-bold">DEVICE ID</span>
-                            <span className="text-[11px] font-mono text-indigo-400 truncate max-w-[200px]">
-                                {getDeviceId()}
-                            </span>
-                        </div>
-                    </div>
-                </div>
-                <p className="text-[9px] text-slate-600 italic leading-tight">* 모바일과 PC의 'GOOGLE UID'가 다르면 설정 내용이 공유되지 않습니다.</p>
-            </div>
 
             {/* Login / Profile Card */}
             <div className="mb-8 bg-gradient-to-br from-slate-900 to-slate-950 border border-slate-800 p-6 rounded-3xl shadow-xl relative overflow-hidden group">
@@ -414,74 +379,6 @@ export default function SettingsPage() {
                     </p>
                 </div>
 
-            {/* Delivery Tip Zones */}
-            <div id="guide-settings-tipzones" className="mt-8 pt-8 border-t border-gray-800">
-                <div className="flex items-center gap-2 mb-3">
-                    <h3 className="text-base font-bold text-gray-200">배송팁 상세 구역 관리</h3>
-                    <span className="px-2 py-0.5 bg-blue-500/10 text-blue-400 text-[10px] font-bold rounded-full border border-blue-500/20">
-                        NEW
-                    </span>
-                </div>
-                <p className="text-xs text-gray-500 mb-4 bg-gray-900/50 p-3 rounded-xl border border-gray-800 leading-relaxed">
-                    배송팁 작성 시 선택할 상세 구역(예: B01, C02 등)을 추가할 수 있습니다. 추가된 구역은 배송팁 목록의 필터와 입력 버튼으로 자동 반영됩니다.
-                </p>
-                <div className="space-y-3">
-                    {/* List of existing tipZones */}
-                    {settings.tipZones && settings.tipZones.length > 0 && (
-                        <div className="flex flex-wrap gap-2 mb-4">
-                            {settings.tipZones.map((zone, idx) => (
-                                <div key={idx} className="flex items-center gap-2 px-3 py-1.5 bg-gray-900 border border-gray-800 rounded-xl text-sm font-bold text-gray-300">
-                                    <span>{zone}</span>
-                                    <button
-                                        onClick={() => {
-                                            setSettings(prev => ({
-                                                ...prev,
-                                                tipZones: (prev.tipZones || []).filter((_, i) => i !== idx)
-                                            }));
-                                        }}
-                                        className="w-5 h-5 flex items-center justify-center rounded-full bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors active:scale-[0.98]"
-                                    >
-                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-                                    </button>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-
-                    {/* Input for new tipZone */}
-                    <div className="flex gap-2">
-                        <input
-                            type="text"
-                            id="newTipZoneInput"
-                            placeholder="새 구역 추가 (예: B01)"
-                            onKeyDown={(e) => {
-                                if (e.key === "Enter") {
-                                    const input = e.target as HTMLInputElement;
-                                    const val = input.value.trim();
-                                    if (val && !(settings.tipZones || []).includes(val)) {
-                                        setSettings(prev => ({ ...prev, tipZones: [...(prev.tipZones || []), val] }));
-                                        input.value = "";
-                                    }
-                                }
-                            }}
-                            className="flex-1 bg-gray-900 border border-gray-800 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-blue-500/50"
-                        />
-                        <button
-                            onClick={() => {
-                                const input = document.getElementById("newTipZoneInput") as HTMLInputElement;
-                                const val = input.value.trim();
-                                if (val && !(settings.tipZones || []).includes(val)) {
-                                    setSettings(prev => ({ ...prev, tipZones: [...(prev.tipZones || []), val] }));
-                                    input.value = "";
-                                }
-                            }}
-                            className="px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold rounded-xl transition-all active:scale-[0.98]"
-                        >
-                            추가
-                        </button>
-                    </div>
-                </div>
-            </div>
 
             {/* Shared ID */}
             <div id="guide-settings-sharedid" className="mt-8 pt-8 border-t border-gray-800">
