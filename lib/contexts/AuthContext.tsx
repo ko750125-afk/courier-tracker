@@ -42,16 +42,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     const logout = async () => {
+        if (typeof window === "undefined") return;
+
+        // 1. Clear local storage immediately for UI responsiveness
+        const keysToClear = [
+            "courier-tracker-settings",
+            "courier-tracker-deliveries",
+            "courier-tracker-tips",
+            "courier-tracker-settlements"
+        ];
+        keysToClear.forEach(key => localStorage.removeItem(key));
+
         const auth = getFirebaseAuth();
         try {
-            await firebaseSignOut(auth);
-            // Force reload to clear all local states and redirect to settings
-            if (typeof window !== "undefined") {
+            // 2. Set a safety timeout to force reload even if signOut hangs
+            const forceReload = setTimeout(() => {
                 window.location.href = "/settings";
-            }
+            }, 1000);
+
+            await firebaseSignOut(auth);
+            
+            clearTimeout(forceReload);
+            window.location.href = "/settings";
         } catch (error) {
             console.error("Logout Error:", error);
-            throw error;
+            // Even on error, we want to force the state reset
+            window.location.href = "/settings";
         }
     };
 
