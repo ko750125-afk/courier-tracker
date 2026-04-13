@@ -1,3 +1,4 @@
+"use client";
 import { useState, useEffect, useCallback, useRef } from "react";
 import ZoneManager from "@/components/ZoneManager";
 import {
@@ -288,7 +289,6 @@ export default function SettingsPage() {
                 <p className="mt-3 text-[10px] text-gray-500 leading-relaxed italic">
                     * 야간 배송(밤 10시~다음날 오전)의 경우, 새벽에 입력한 실적이 배송을 시작한 전날 날짜로 자동 기록됩니다.
                 </p>
-            </div>
             </div>
 
 

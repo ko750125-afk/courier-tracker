@@ -1,3 +1,4 @@
+"use client";
 import { useState, useEffect, useCallback } from "react";
 import { Delivery, Settings, DEFAULT_SETTINGS, ReceivedSettlementsMap } from "@/lib/types";
 import {
@@ -39,7 +40,18 @@ export default function SettlementsPage() {
             setLoading(false);
         }
     }, [user?.uid]);
-// ... (rest of the file stays same but with user?.uid passed)
+
+    if (loading || authLoading) {
+        return (
+            <div className="flex items-center justify-center min-h-[60vh]">
+                <div className="text-center">
+                    <div className="w-10 h-10 border-2 border-gray-600 border-t-blue-500 rounded-full animate-spin mx-auto mb-4" />
+                    <p className="text-gray-500 text-sm">로딩 중...</p>
+                </div>
+            </div>
+        );
+    }
+
     useEffect(() => {
         loadData();
     }, [loadData]);
@@ -66,7 +78,7 @@ export default function SettlementsPage() {
     };
 
     // 로딩 스피너
-    if (loading || authLoading) {
+    if (loading) {
         return (
             <div className="flex items-center justify-center min-h-[80vh]">
                 <div className="relative">
@@ -78,7 +90,6 @@ export default function SettlementsPage() {
             </div>
         );
     }
-
 
     // 최근 12개월간의 정산 목록 계산
     const settlements = listRecentSettlements(deliveries, settings.zones, settings, 12);

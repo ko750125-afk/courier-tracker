@@ -1,3 +1,4 @@
+"use client";
 import { useState, useEffect, useCallback } from "react";
 import DeliveryInput from "@/components/DeliveryInput";
 import Dashboard from "@/components/Dashboard";
@@ -124,4 +125,3 @@ export default function HomePage() {
     </div>
   );
 }
-

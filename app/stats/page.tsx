@@ -1,9 +1,9 @@
+"use client";
 import { useState, useEffect, useCallback } from "react";
 import dynamic from "next/dynamic";
 import { Delivery, Settings, DEFAULT_SETTINGS } from "@/lib/types";
 import { loadSettings, loadDeliveries, saveSettings, saveDelivery, deleteDelivery } from "@/lib/store";
 import MonthlyCalendar from "@/components/MonthlyCalendar";
-import { useAuth } from "@/lib/contexts/AuthContext";
 import {
     calcMonthlyStats,
     calcDailyRevenue,
@@ -11,6 +11,7 @@ import {
     formatNumber,
     listRecentSettlements,
 } from "@/lib/calculations";
+import { useAuth } from "@/lib/contexts/AuthContext";
 
 const ChartView = dynamic(() => import("@/components/ChartView"), {
     ssr: false,
@@ -100,7 +101,6 @@ export default function StatsPage() {
             }
         }
     };
-
 
     const [year, month] = selectedMonth.split("-").map(Number);
     const { totalDeliveries, totalRevenue } = calcMonthlyStats(

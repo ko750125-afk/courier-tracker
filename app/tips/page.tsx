@@ -1,3 +1,4 @@
+"use client";
 import React, { useRef, useState, useEffect, useCallback } from "react";
 import { DeliveryTip, Settings, DEFAULT_SETTINGS } from "@/lib/types";
 import { loadSettings, loadTips, saveTip, deleteTip } from "@/lib/store";
@@ -9,14 +10,36 @@ import AddTipModal from "@/components/tips/AddTipModal";
 import TipDetailModal from "@/components/tips/TipDetailModal";
 
 export default function TipsPage() {
-    // --- Auth ---
     const { user, loading: authLoading } = useAuth();
-
     // --- State ---
     const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
     const [tips, setTips] = useState<DeliveryTip[]>([]);
     const [isLoading, setIsLoading] = useState(true);
-... (rest of the file with user?.uid passed)
+
+    // Navigation & Filtering
+    const [selectedZone, setSelectedZone] = useState<string | null>(null);
+    
+    // Modals visibility
+    const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+    const [viewingTipId, setViewingTipId] = useState<string | null>(null);
+    const [fullscreenImage, setFullscreenImage] = useState<string | null>(null);
+
+    // Form State: Add Tip
+    const [newZone, setNewZone] = useState<string>("");
+    const [newAddress, setNewAddress] = useState("");
+    const [newContent, setNewContent] = useState("");
+    const [newPhotos, setNewPhotos] = useState<string[]>([]);
+    const [isSpeechLoading, setIsSpeechLoading] = useState(false);
+
+    // Form State: Edit Tip
+    const [editZone, setEditZone] = useState("");
+    const [editAddress, setEditAddress] = useState("");
+    const [editContent, setEditContent] = useState("");
+    const [editPhotos, setEditPhotos] = useState<string[]>([]);
+    
+    // Persistent Annotations & Original Images
+    const [photoData, setPhotoData] = useState<Record<string, { original: string, annotations: any[] }>>({});
+
     // --- Helpers ---
     const loadAppData = useCallback(async () => {
         try {
@@ -108,7 +131,54 @@ export default function TipsPage() {
         setNewContent("");
         setNewPhotos([]);
     };
-... (rest of the camera capture and speech logic)
+
+    const handleCameraCapture = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onloadend = () => {
+            const base64 = reader.result as string;
+            if (isAddModalOpen) {
+                setNewPhotos(prev => [...prev, base64]);
+            } else {
+                setEditPhotos(prev => [...prev, base64]);
+            }
+            // Store original for re-editing
+            setPhotoData(prev => ({
+                ...prev,
+                [base64]: { original: base64, annotations: [] }
+            }));
+        };
+        reader.readAsDataURL(file);
+    };
+
+    const startSpeechRecognition = () => {
+        const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+        if (!SpeechRecognition) {
+            alert("이 브라우저는 음성 인식을 지원하지 않습니다.");
+            return;
+        }
+
+        const recognition = new SpeechRecognition();
+        recognition.lang = 'ko-KR';
+        recognition.interimResults = false;
+        recognition.maxAlternatives = 1;
+
+        recognition.onstart = () => setIsSpeechLoading(true);
+        recognition.onend = () => setIsSpeechLoading(false);
+        recognition.onresult = (event: any) => {
+            const transcript = event.results[0][0].transcript;
+            setNewContent(prev => prev + (prev ? " " : "") + transcript);
+        };
+        recognition.onerror = (event: any) => {
+            console.error("Speech recognition error:", event.error);
+            setIsSpeechLoading(false);
+        };
+
+        recognition.start();
+    };
+
     // --- Data processing for rendering ---
     if (isLoading || authLoading) {
         return (
@@ -120,7 +190,6 @@ export default function TipsPage() {
             </div>
         );
     }
-
 
     const viewingTip = tips.find(t => t.id === viewingTipId);
     
