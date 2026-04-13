@@ -379,6 +379,32 @@ export default function SettingsPage() {
                     </p>
                 </div>
 
+                {/* Commission Settings */}
+                <div className="mt-8 bg-slate-900/50 border border-slate-800 p-6 rounded-2xl">
+                    <h3 className="text-base font-bold text-slate-200 mb-4 uppercase tracking-widest text-xs">회사 수수료율</h3>
+                    <div className="space-y-4">
+                        <div className="relative">
+                            <input
+                                type="text"
+                                inputMode="decimal"
+                                value={settings.commissionRate || ""}
+                                onChange={(e) => {
+                                    const val = e.target.value.replace(/[^0-9.]/g, "");
+                                    // Allow only one decimal point
+                                    if (val.split('.').length > 2) return;
+                                    setSettings(prev => ({ ...prev, commissionRate: val === "" ? 0 : parseFloat(val) }));
+                                }}
+                                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white text-base focus:outline-none focus:border-blue-500/50"
+                                placeholder="예: 15.5"
+                            />
+                            <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 text-sm">%</span>
+                        </div>
+                        <p className="text-[10px] text-gray-600 leading-relaxed italic">
+                            * 배송 총 매출에서 위 설정된 비율만큼 공제한 금액이 최종 정산액에 반영됩니다. (예: 15.5%, 3.3% 등)
+                        </p>
+                    </div>
+                </div>
+
 
             {/* Shared ID */}
             <div id="guide-settings-sharedid" className="mt-8 pt-8 border-t border-gray-800">

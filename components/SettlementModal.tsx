@@ -121,16 +121,28 @@ export default function SettlementModal({
 
                 {/* Footer */}
                 <div className="p-6 bg-slate-950 border-t border-slate-800 rounded-b-2xl">
-                    <div className="flex justify-between items-end">
-                        <div className="space-y-1">
-                            <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest block">총 배송 건수</span>
-                            <span className="text-xl font-black text-slate-400">{formatNumber(breakdown.totalCount)}건</span>
+                    <div className="space-y-4">
+                        <div className="flex justify-between items-center text-sm border-b border-slate-800 pb-3">
+                            <span className="text-slate-500 font-bold">배송 매출 총액</span>
+                            <span className="text-slate-200 font-black">{formatWon(breakdown.totalamount)}</span>
                         </div>
-                        <div className="text-right space-y-1">
-                            <span className="text-[10px] text-blue-500 font-bold uppercase tracking-widest block">최종 정산 합계</span>
-                            <span className="text-3xl font-black text-white tracking-tighter">
-                                {formatWon(breakdown.totalamount)}
-                            </span>
+                        {(breakdown.commissionTotal || 0) > 0 && (
+                            <div className="flex justify-between items-center text-sm border-b border-slate-800 pb-3">
+                                <span className="text-red-500/70 font-bold italic">회사 수수료 공제</span>
+                                <span className="text-red-400 font-black">-{formatWon(breakdown.commissionTotal)}</span>
+                            </div>
+                        )}
+                        <div className="flex justify-between items-end pt-2">
+                            <div className="space-y-1">
+                                <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest block">총 배송 건수</span>
+                                <span className="text-xl font-black text-slate-400">{formatNumber(breakdown.totalCount)}건</span>
+                            </div>
+                            <div className="text-right space-y-1">
+                                <span className="text-[10px] text-blue-500 font-bold uppercase tracking-widest block">실제 예상 수령액</span>
+                                <span className="text-3xl font-black text-white tracking-tighter">
+                                    {formatWon(breakdown.netAmount ?? breakdown.totalamount)}
+                                </span>
+                            </div>
                         </div>
                     </div>
                 </div>

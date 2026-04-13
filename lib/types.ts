@@ -41,6 +41,7 @@ export interface Settings {
     useLinkedIncentive?: boolean;
     useSoloIncentive?: boolean;
     useSoundEffects?: boolean;
+    commissionRate?: number; // 회사 수수료율 (%)
 }
 
 export interface DailyBreakdown {
@@ -65,6 +66,8 @@ export interface SettlementBreakdown {
     baseTotal: number;
     incentiveTotal: number;
     totalCount: number;
+    commissionTotal: number;
+    netAmount: number;
     days: DailyBreakdown[];
     zoneSummaries: SettlementZoneSummary[];
 }
@@ -96,6 +99,7 @@ export const DEFAULT_SETTINGS: Settings = {
     useLinkedIncentive: false,
     useSoloIncentive: false,
     useSoundEffects: false,
+    commissionRate: 0,
 };
 
 

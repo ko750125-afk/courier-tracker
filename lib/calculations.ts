@@ -256,16 +256,24 @@ export function getSettlementByDate(
     const baseTotal = dailyBreakdowns.reduce((s, bd) => s + bd.baseRevenue, 0);
     const incentiveTotal = dailyBreakdowns.reduce((s, bd) => s + bd.incentive, 0);
     const totalCount = dailyBreakdowns.reduce((s, bd) => s + bd.count, 0);
-    const amount = baseTotal + incentiveTotal;
+    const grossAmount = baseTotal + incentiveTotal;
+
+    const commissionRate = settings.commissionRate || 0;
+    const commissionTotal = Math.round(grossAmount * (commissionRate / 100));
+    const netAmount = grossAmount - commissionTotal;
 
     const breakdown: SettlementBreakdown = {
-        totalamount: amount,
+        totalamount: grossAmount, // 매출 총액
         baseTotal,
         incentiveTotal,
         totalCount,
+        commissionTotal,
+        netAmount,
         days: dailyBreakdowns,
         zoneSummaries
     };
+
+    const amount = netAmount; // 최종 수령액
 
     const paymentDate = `${payY}-${String(payM).padStart(2, "0")}-${String(payDay).padStart(2, "0")}`;
     const paymentLabel = `${payM}월 ${payDay}일 예상 수령액`;
