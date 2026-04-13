@@ -9,7 +9,8 @@ import {
     WORK_TYPE_LABELS,
     DEFAULT_SETTINGS,
 } from "@/lib/types";
-import { loadSettings, saveSettings, syncFromCloud, migrateFromDeviceToUser, getDeviceId, subscribeToSettings } from "@/lib/store";
+import { loadSettings, saveSettings, syncFromCloud, migrateFromDeviceToUser, subscribeToSettings } from "@/lib/store";
+import { getDeviceId } from "@/lib/firebase";
 import { useAuth } from "@/lib/contexts/AuthContext";
 import PWAInstaller from "@/components/PWAInstaller";
 
