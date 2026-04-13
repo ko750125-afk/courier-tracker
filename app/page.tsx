@@ -109,6 +109,9 @@ export default function HomePage() {
             setSettings(newSettings);
           }}
         />
+        <div className="mt-8 mb-4 text-center">
+          <p className="text-[9px] text-slate-600 font-bold uppercase tracking-[0.3em] opacity-40">v1.2.1 - Refactored & Applied</p>
+        </div>
       </div>
     </div>
   );
