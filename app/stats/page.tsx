@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback } from "react";
 import dynamic from "next/dynamic";
 import { Delivery, Settings, DEFAULT_SETTINGS } from "@/lib/types";
-import { loadSettings, loadDeliveries, saveSettings, saveDelivery, deleteDelivery } from "@/lib/store";
+import { loadSettings, loadDeliveries, saveSettings, saveDelivery, deleteDelivery, subscribeToSettings, subscribeToDeliveries } from "@/lib/store";
 import MonthlyCalendar from "@/components/MonthlyCalendar";
 import {
     calcMonthlyStats,
@@ -49,7 +49,21 @@ export default function StatsPage() {
         const m = String(now.getMonth() + 1).padStart(2, "0");
         setSelectedMonth(`${y}-${m}`);
         loadData();
-    }, [loadData]);
+
+        // Subscribe to real-time updates
+        const unsubSettings = subscribeToSettings(user?.uid, (newS) => {
+            setSettings(newS);
+        });
+
+        const unsubDeliveries = subscribeToDeliveries(user?.uid, (newD) => {
+            setDeliveries(newD);
+        });
+
+        return () => {
+            unsubSettings();
+            unsubDeliveries();
+        };
+    }, [loadData, user?.uid]);
 
     if (!isMounted || loading || authLoading || !selectedMonth) {
         return (
@@ -85,7 +99,6 @@ export default function StatsPage() {
     const handleSaveDelivery = async (dateStr: string, total: number) => {
         try {
             await saveDelivery(dateStr, total, user?.uid);
-            await loadData();
         } catch (err) {
             console.error("Failed to save delivery:", err);
         }
@@ -95,7 +108,6 @@ export default function StatsPage() {
         if (confirm("해당 날짜의 배송 기록을 삭제하시겠습니까?")) {
             try {
                 await deleteDelivery(dateStr, user?.uid);
-                await loadData();
             } catch (err) {
                 console.error("Failed to delete delivery:", err);
             }

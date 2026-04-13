@@ -8,6 +8,8 @@ import {
   loadDeliveries,
   saveDelivery,
   saveSettings,
+  subscribeToSettings,
+  subscribeToDeliveries,
 } from "@/lib/store";
 import { formatNumber } from "@/lib/calculations";
 import { useAuth } from "@/lib/contexts/AuthContext";
@@ -39,7 +41,21 @@ export default function HomePage() {
   useEffect(() => {
     setIsMounted(true);
     loadData();
-  }, [loadData]);
+
+    // Subscribe to real-time updates
+    const unsubSettings = subscribeToSettings(user?.uid, (newS) => {
+      setSettings(newS);
+    });
+
+    const unsubDeliveries = subscribeToDeliveries(user?.uid, (newD) => {
+      setDeliveries(newD);
+    });
+
+    return () => {
+      unsubSettings();
+      unsubDeliveries();
+    };
+  }, [loadData, user?.uid]);
 
   const handleSave = async (total: number) => {
     const workingDate = getWorkingDate(settings.workShift);
@@ -48,7 +64,6 @@ export default function HomePage() {
     await saveDelivery(targetDateStr, total, user?.uid);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
-    await loadData();
   };
 
   if (!isMounted || loading || authLoading) {
@@ -110,7 +125,7 @@ export default function HomePage() {
           }}
         />
         <div className="mt-8 mb-4 text-center">
-          <p className="text-[9px] text-slate-600 font-bold uppercase tracking-[0.3em] opacity-40">v1.2.1 - Refactored & Applied</p>
+          <p className="text-[9px] text-slate-600 font-bold uppercase tracking-[0.3em] opacity-40">v1.2.5 - Real-time Sync Linked</p>
         </div>
       </div>
     </div>

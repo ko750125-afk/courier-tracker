@@ -201,6 +201,54 @@ export function subscribeToSettings(uid: string | undefined, callback: (settings
     }
 }
 
+/**
+ * Subscribe to deliveries changes (Real-time Sync)
+ */
+export function subscribeToDeliveries(uid: string | undefined, callback: (deliveries: Delivery[]) => void) {
+    if (!isClient()) return () => {};
+    
+    try {
+        const database = getDatabase();
+        const id = getTargetId(uid);
+        
+        return onSnapshot(collection(database, "users", id, "deliveries"), (snap) => {
+            const cloudDeliveries = snap.docs.map(d => ({
+                date: d.id,
+                total: d.data().total || 0
+            } as Delivery));
+            
+            // Merge with local to be safe (though usually cloud is source of truth after login/sharedId)
+            const stored = safeGet(STORAGE_KEY_DELIVERIES);
+            let localDeliveries: Delivery[] = [];
+            if (stored) {
+                try { localDeliveries = JSON.parse(stored); } catch { }
+            }
+            
+            const merged = [...localDeliveries];
+            cloudDeliveries.forEach(cd => {
+                const idx = merged.findIndex(ld => ld.date === cd.date);
+                if (idx >= 0) {
+                    merged[idx] = cd;
+                } else {
+                    merged.push(cd);
+                }
+            });
+            
+            const sorted = merged.sort((a, b) => b.date.localeCompare(a.date));
+            const currentStr = JSON.stringify(sorted);
+            const storedStr = safeGet(STORAGE_KEY_DELIVERIES);
+            
+            if (currentStr !== storedStr) {
+                safeSet(STORAGE_KEY_DELIVERIES, currentStr);
+                callback(sorted);
+            }
+        });
+    } catch (e) {
+        console.warn("Real-time deliveries subscription failed:", e);
+        return () => {};
+    }
+}
+
 export async function loadSettings(uid?: string): Promise<Settings> {
     const stored = safeGet(STORAGE_KEY_SETTINGS);
     if (stored) {
