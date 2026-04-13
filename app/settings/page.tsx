@@ -165,10 +165,17 @@ export default function SettingsPage() {
                 <div className="grid grid-cols-1 gap-2">
                     <div className="flex justify-between items-center bg-black/30 p-2.5 rounded-xl border border-white/5 shadow-sm">
                         <div className="flex flex-col">
-                            <span className="text-[9px] text-slate-500 font-bold">GOOGLE UID</span>
-                            <span className="text-[11px] font-mono text-blue-400 truncate max-w-[200px]">
-                                {user ? user.uid : "로그인 안 됨"}
-                            </span>
+                            <span className="text-[9px] text-slate-500 font-bold">GOOGLE UID / EMAIL</span>
+                            <div className="flex flex-col">
+                                <span className="text-[11px] font-mono text-blue-400 truncate max-w-[200px]">
+                                    {user ? user.uid : "로그인 안 됨"}
+                                </span>
+                                {user?.email && (
+                                    <span className="text-[10px] text-slate-400 font-medium">
+                                        {user.email}
+                                    </span>
+                                )}
+                            </div>
                         </div>
                         {user && <span className="text-[9px] text-blue-600/50 px-1 bg-blue-500/5 border border-blue-500/10 rounded">ACTIVE</span>}
                     </div>
