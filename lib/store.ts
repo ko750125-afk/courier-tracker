@@ -194,6 +194,8 @@ export function subscribeToSettings(uid: string | undefined, callback: (settings
                     callback(settings);
                 }
             }
+        }, (error) => {
+            console.warn("Real-time settings subscription error:", error);
         });
     } catch (e) {
         console.warn("Real-time sync subscription failed:", e);
@@ -242,6 +244,8 @@ export function subscribeToDeliveries(uid: string | undefined, callback: (delive
                 safeSet(STORAGE_KEY_DELIVERIES, currentStr);
                 callback(sorted);
             }
+        }, (error) => {
+            console.warn("Real-time deliveries subscription error:", error);
         });
     } catch (e) {
         console.warn("Real-time deliveries subscription failed:", e);
@@ -254,12 +258,20 @@ export async function loadSettings(uid?: string): Promise<Settings> {
     if (stored) {
         try {
             const parsed = JSON.parse(stored);
-            if (parsed && typeof parsed === 'object') return parsed as Settings;
+            if (parsed && typeof parsed === 'object') {
+                // Background sync attempt
+                syncFromCloud(uid).catch(e => console.warn("Background sync failed:", e));
+                return parsed as Settings;
+            }
         } catch { }
     }
 
-    const { settings } = await syncFromCloud(uid);
-    if (settings) return settings;
+    try {
+        const { settings } = await syncFromCloud(uid);
+        if (settings) return settings;
+    } catch (e) {
+        console.warn("Cloud sync failed in loadSettings, falling back to default:", e);
+    }
 
     // 클라우드에도 데이터가 없는 최초 실행 시에만 로컬 시드 생성
     const defaultS = { ...DEFAULT_SETTINGS };
@@ -317,9 +329,13 @@ export async function loadDeliveries(uid?: string): Promise<Delivery[]> {
     
     // 로그인이 되어있거나 공유 ID가 설정되어 있으면 항상 클라우드와 먼저 동기화를 시도함
     if (uid || hasSharedId) {
-        const { deliveries } = await syncFromCloud(uid);
-        if (deliveries && deliveries.length > 0) {
-            return deliveries.sort((a, b) => b.date.localeCompare(a.date));
+        try {
+            const { deliveries } = await syncFromCloud(uid);
+            if (deliveries && deliveries.length > 0) {
+                return deliveries.sort((a, b) => b.date.localeCompare(a.date));
+            }
+        } catch (e) {
+            console.warn("Cloud sync failed in loadDeliveries, falling back to local:", e);
         }
     }
 
@@ -334,8 +350,12 @@ export async function loadDeliveries(uid?: string): Promise<Delivery[]> {
     }
 
     if (localDeliveries.length === 0 && !uid && !hasSharedId) {
-        const { deliveries } = await syncFromCloud();
-        if (deliveries) return deliveries.sort((a, b) => b.date.localeCompare(a.date));
+        try {
+            const { deliveries } = await syncFromCloud();
+            if (deliveries) return deliveries.sort((a, b) => b.date.localeCompare(a.date));
+        } catch (e) {
+            console.warn("Cloud sync failed for anonymous user:", e);
+        }
     }
 
     return localDeliveries.sort((a, b) => b.date.localeCompare(a.date));
@@ -391,8 +411,12 @@ export async function loadTips(uid?: string): Promise<DeliveryTip[]> {
     }
 
     if (localTips.length === 0 || uid) {
-        const { tips } = await syncFromCloud(uid);
-        if (tips) return tips.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        try {
+            const { tips } = await syncFromCloud(uid);
+            if (tips) return tips.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        } catch (e) {
+            console.warn("Cloud sync failed in loadTips, falling back to local:", e);
+        }
     }
 
     return localTips.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
