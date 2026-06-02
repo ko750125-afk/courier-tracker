@@ -319,7 +319,22 @@ export function listRecentSettlements(
     const results: any[] = [];
     const now = new Date();
     
-    for (let i = 0; i < count; i++) {
+    // 전체 기간을 커버하기 위해 최초 배송일 찾기
+    let oldestDate = now;
+    if (deliveries && deliveries.length > 0) {
+        // deliveries는 이미 날짜순 정렬이 되어 있거나, 최소한 모든 데이터를 가지고 있음
+        const firstDeliveryDateStr = deliveries.reduce((min, d) => (d.date < min ? d.date : min), deliveries[0].date);
+        oldestDate = new Date(firstDeliveryDateStr + " 00:00:00");
+    }
+
+    // 최소 12개월(기본값)은 무조건 탐색하고, 첫 배송일이 더 과거라면 그 달까지 탐색
+    let maxMonthsToLookBack = count; 
+    const monthsSinceFirstDelivery = (now.getFullYear() - oldestDate.getFullYear()) * 12 + (now.getMonth() - oldestDate.getMonth());
+    if (monthsSinceFirstDelivery > maxMonthsToLookBack) {
+        maxMonthsToLookBack = monthsSinceFirstDelivery + 2; // 여유있게 +2개월
+    }
+    
+    for (let i = 0; i < maxMonthsToLookBack; i++) {
         // We check current date, and then go back month by month
         const checkDate = new Date(now.getFullYear(), now.getMonth() - i, now.getDate());
         const settlement = getSettlementByDate(deliveries, zones, checkDate, settings);

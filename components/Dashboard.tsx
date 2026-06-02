@@ -9,8 +9,11 @@ import {
     formatWon,
     formatNumber,
 } from "@/lib/calculations";
-import SettlementModal from "./SettlementModal";
+import { useSettlement } from "@/lib/hooks/useSettlement";
+import { useDeliveryStats } from "@/lib/hooks/useDeliveryStats";
 import { useSound } from "@/lib/hooks/useSound";
+import SettlementModal from "./SettlementModal";
+import { ChevronRight } from "lucide-react";
 
 interface DashboardProps {
     deliveries: Delivery[];
@@ -34,21 +37,10 @@ export default function Dashboard({
     const todayRevenue =
         todayTotal !== null ? calcDailyRevenue(todayTotal, settings.zones, settings) : 0;
 
-    const { estimatedNetRevenue, dailyAvg } = calcEstimatedEarnings(
-        deliveries,
-        settings.zones,
-        settings.workType,
-        year,
-        month,
-        settings
-    );
+    const { estimatedStats } = useDeliveryStats(deliveries, settings, now);
+    const { estimatedNetRevenue, dailyAvg } = estimatedStats;
 
-    const nextPayment = calcNextPayment(
-        deliveries,
-        settings.zones,
-        now,
-        settings
-    );
+    const { nextPayment } = useSettlement(deliveries, settings);
 
     const toggleIncentive = (type: 'linked' | 'solo') => {
         if (!onUpdateSettings) return;
@@ -118,13 +110,11 @@ export default function Dashboard({
                     </span>
                     <span className="text-sm text-slate-200 font-black tracking-tight">{nextPayment.paymentLabel}</span>
                     <Link 
-                        href="/settlements" 
+                        href="/stats" 
                         className="text-[10px] text-slate-500 hover:text-blue-400 font-bold mt-4 transition-colors uppercase tracking-[0.2em] flex items-center gap-1.5"
                     >
-                        정산 히스토리
-                        <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={4} d="M9 5l7 7-7 7" />
-                        </svg>
+                        정산 통계 보기
+                        <ChevronRight className="w-3 h-3" />
                     </Link>
                 </div>
                 <div className="flex flex-col items-end relative z-10">
@@ -144,13 +134,9 @@ export default function Dashboard({
                         className="bg-blue-600/10 text-[10px] text-blue-400 font-black px-3 py-2 rounded-xl border border-blue-500/20 hover:bg-blue-600/20 hover:scale-105 transition-all uppercase tracking-widest flex items-center gap-1.5"
                     >
                         상세 내역
-                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M9 5l7 7-7 7" />
-                        </svg>
+                        <ChevronRight className="w-3 h-3" />
                     </button>
                 </div>
-
-
             </div>
 
             {/* Coupang Incentives - Positioned below Expected Payout card */}

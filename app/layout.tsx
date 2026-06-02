@@ -3,8 +3,6 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import BottomNav from "@/components/BottomNav";
 import ErrorWatcher from "@/components/ErrorWatcher";
-import OnboardingGuide from "@/components/OnboardingGuide";
-import FunctionalGuide from "@/components/FunctionalGuide";
 import { AuthProvider } from "@/lib/contexts/AuthContext";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -58,8 +56,6 @@ export default function RootLayout({
             }}
           />
           <ErrorWatcher />
-          <OnboardingGuide />
-          <FunctionalGuide />
           <main className="relative max-w-lg mx-auto px-4 pt-8 pb-28 focus:outline-none">{children}</main>
           <BottomNav />
         </AuthProvider>

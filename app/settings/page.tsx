@@ -14,6 +14,9 @@ import SettlementSection from "@/components/settings/SettlementSection";
 import CommissionSection from "@/components/settings/CommissionSection";
 import SyncSection from "@/components/settings/SyncSection";
 
+import Accordion from "@/components/Accordion";
+import { User, CalendarClock, Map, Wallet, Cloud, Settings2, Download, Volume2 } from "lucide-react";
+
 export default function SettingsPage() {
     const { user, loginWithGoogle, logout, loading: authLoading } = useAuth();
     const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
@@ -143,93 +146,98 @@ export default function SettingsPage() {
     return (
         <div className="pb-20">
             <div className="flex items-center justify-between mb-6 px-1">
-                <h1 className="text-xl font-bold text-gray-100">설정</h1>
+                <h1 className="text-2xl font-black text-white tracking-tight">설정</h1>
                 <div className="flex items-center gap-2">
                     {saving ? (
-                        <span className="text-[10px] text-blue-400 animate-pulse">자동 저장 중...</span>
+                        <span className="text-[10px] font-bold tracking-widest uppercase text-blue-400 animate-pulse">자동 저장 중</span>
                     ) : saved ? (
-                        <span className="text-[10px] text-green-400">✓ 저장됨</span>
+                        <span className="text-[10px] font-bold tracking-widest uppercase text-green-400">✓ 저장됨</span>
                     ) : (
-                        <span className="text-[10px] text-slate-500">모든 변경사항 자동 저장</span>
+                        <span className="text-[10px] font-bold tracking-widest uppercase text-slate-500">자동 저장</span>
                     )}
                 </div>
             </div>
 
-            <ProfileSection 
-                user={user} 
-                loginWithGoogle={loginWithGoogle} 
-                logout={logout} 
-                handleMigration={handleMigration} 
-                isMigrating={isMigrating} 
-            />
-
-            <ZoneManager 
-                zones={settings.zones} 
-                onChange={(zones) => handleUpdate({ zones })} 
-            />
-
-            <WorkPatternSection 
-                settings={settings} 
-                onUpdate={handleUpdate} 
-                handleRestDayToggle={handleRestDayToggle} 
-            />
-
-            <SettlementSection 
-                settings={settings} 
-                onUpdate={handleUpdate} 
-            />
-
-            <CommissionSection 
-                commissionRateInput={commissionRateInput} 
-                onInputChange={handleCommissionInputChange} 
-            />
-
-            <SyncSection 
-                settings={settings} 
-                onUpdate={handleUpdate} 
-                handleManualSync={handleManualSync} 
-                isSyncing={isSyncing} 
-                lastSyncTime={lastSyncTime} 
-            />
-
-            <PWAInstaller />
-
-            {/* Sound Switch */}
-            <div className="mt-8 bg-slate-900/50 border border-slate-800 p-6 rounded-2xl">
-                <div className="flex items-center justify-between">
-                    <div className="flex flex-col gap-1">
-                        <h3 className="text-base font-bold text-slate-200 uppercase tracking-widest text-xs">버튼 사운드</h3>
-                        <p className="text-[10px] text-gray-500 italic">버튼 클릭 시 가벼운 효과음을 재생합니다.</p>
-                    </div>
-                    <button
-                        onClick={() => handleUpdate({ useSoundEffects: !settings.useSoundEffects })}
-                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
-                            settings.useSoundEffects ? 'bg-blue-600' : 'bg-gray-700'
-                        }`}
-                    >
-                        <span
-                            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                                settings.useSoundEffects ? 'translate-x-6' : 'translate-x-1'
-                            }`}
-                        />
-                    </button>
+            <Accordion title="기본 정보 및 백업" icon={User} defaultOpen={true}>
+                <div className="space-y-4">
+                    <ProfileSection 
+                        user={user} 
+                        loginWithGoogle={loginWithGoogle} 
+                        logout={logout} 
+                        handleMigration={handleMigration} 
+                        isMigrating={isMigrating} 
+                    />
+                    <SyncSection 
+                        settings={settings} 
+                        onUpdate={handleUpdate} 
+                        handleManualSync={handleManualSync} 
+                        isSyncing={isSyncing} 
+                        lastSyncTime={lastSyncTime} 
+                    />
                 </div>
-            </div>
+            </Accordion>
 
-            <div className="mt-12 text-center space-y-4">
-                <button
-                    onClick={() => {
-                        localStorage.removeItem("functional_guide_v1");
-                        localStorage.removeItem("onboarding_v1");
-                        window.location.href = "/";
-                    }}
-                    className="text-xs text-blue-500 hover:text-blue-400 font-medium px-4 py-2 bg-blue-500/5 rounded-lg border border-blue-500/20"
-                >
-                    사용 가이드 다시보기
-                </button>
-                <div className="text-gray-700 text-[10px] space-y-1">
-                    <p className="font-medium">택배 정산 v1.3</p>
-                    <p>클라우드 실시간 백업 활성화됨</p>
+            <Accordion title="근무 및 정산일 설정" icon={CalendarClock}>
+                <div className="space-y-4">
+                    <WorkPatternSection 
+                        settings={settings} 
+                        onUpdate={handleUpdate} 
+                        handleRestDayToggle={handleRestDayToggle} 
+                    />
+                    <SettlementSection 
+                        settings={settings} 
+                        onUpdate={handleUpdate} 
+                    />
+                </div>
+            </Accordion>
+
+            <Accordion title="구역 및 단가 설정" icon={Map}>
+                <ZoneManager 
+                    zones={settings.zones} 
+                    onChange={(zones) => handleUpdate({ zones })} 
+                />
+            </Accordion>
+
+            <Accordion title="수수료 및 인센티브" icon={Wallet}>
+                <CommissionSection 
+                    commissionRateInput={commissionRateInput} 
+                    onInputChange={handleCommissionInputChange} 
+                />
+            </Accordion>
+
+            <Accordion title="앱 설정" icon={Settings2}>
+                <div className="space-y-4">
+                    {/* Sound Switch */}
+                    <div className="flex items-center justify-between py-2">
+                        <div className="flex items-center gap-3">
+                            <Volume2 className="w-5 h-5 text-slate-400" />
+                            <div className="flex flex-col gap-0.5">
+                                <h3 className="text-sm font-bold text-slate-200">버튼 사운드</h3>
+                                <p className="text-[10px] text-gray-500 font-medium">버튼 터치 시 가벼운 효과음 재생</p>
+                            </div>
+                        </div>
+                        <button
+                            onClick={() => handleUpdate({ useSoundEffects: !settings.useSoundEffects })}
+                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
+                                settings.useSoundEffects ? 'bg-blue-500' : 'bg-slate-700'
+                            }`}
+                        >
+                            <span
+                                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                                    settings.useSoundEffects ? 'translate-x-6' : 'translate-x-1'
+                                }`}
+                            />
+                        </button>
+                    </div>
+
+                    <PWAInstaller />
+                </div>
+            </Accordion>
+
+            <div className="mt-12 text-center space-y-4 pb-8">
+                <div className="text-slate-600 text-[10px] font-bold tracking-widest uppercase space-y-1">
+                    <p>Courier Tracker v2</p>
+                    <p>Cloud Sync Enabled</p>
                 </div>
             </div>
         </div>

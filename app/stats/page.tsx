@@ -5,12 +5,11 @@ import { Delivery, Settings, DEFAULT_SETTINGS } from "@/lib/types";
 import { loadSettings, loadDeliveries, saveSettings, saveDelivery, deleteDelivery, subscribeToSettings, subscribeToDeliveries } from "@/lib/store";
 import MonthlyCalendar from "@/components/MonthlyCalendar";
 import {
-    calcMonthlyStats,
-    calcDailyRevenue,
     formatWon,
     formatNumber,
     listRecentSettlements,
 } from "@/lib/calculations";
+import { useDeliveryStats } from "@/lib/hooks/useDeliveryStats";
 import { useAuth } from "@/lib/contexts/AuthContext";
 
 const ChartView = dynamic(() => import("@/components/ChartView"), {
@@ -65,6 +64,15 @@ export default function StatsPage() {
         };
     }, [loadData, user?.uid]);
 
+    // Calculate target date safely
+    const targetDate = selectedMonth 
+        ? new Date(parseInt(selectedMonth.split("-")[0]), parseInt(selectedMonth.split("-")[1]) - 1, 1)
+        : new Date();
+
+    // Call hook BEFORE early return
+    const { monthlyStats } = useDeliveryStats(deliveries, settings, targetDate);
+    const { totalDeliveries, totalRevenue, netRevenue } = monthlyStats;
+
     if (!isMounted || loading || authLoading || !selectedMonth) {
         return (
             <div className="flex items-center justify-center min-h-[60vh]">
@@ -114,18 +122,11 @@ export default function StatsPage() {
         }
     };
 
-    const [year, month] = selectedMonth.split("-").map(Number);
-    const { totalDeliveries, totalRevenue, netRevenue } = calcMonthlyStats(
-        deliveries,
-        settings.zones,
-        year,
-        month,
-        settings
-    );
-
     const monthDeliveries = (deliveries || []).filter((d) =>
         d && d.date && d.date.startsWith(selectedMonth)
     );
+
+    const month = targetDate.getMonth() + 1;
 
     // 엑셀 탭처럼 고정된 월 목록 생성 (최근 12개월 + 데이터가 있는 월)
     const generateMonthList = () => {
